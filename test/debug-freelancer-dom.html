@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Debug: FreeUp Calc - Freelancer.com DOM Inspector</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #1a1a2e; color: #e0e0e0; }
+    h2 { color: #26a69a; }
+    h3 { color: #14a800; margin-top: 20px; }
+    pre { background: #0d0d1a; padding: 12px; border-radius: 6px; overflow-x: auto; white-space: pre-wrap; font-size: 12px; }
+    .ok { color: #4caf50; }
+    .fail { color: #f44336; }
+    .warn { color: #ff9800; }
+    .box { background: #0a1628; border: 1px solid #26a69a; border-radius: 6px; padding: 14px; margin: 10px 0; }
+    textarea { width: 100%; height: 200px; background: #0d0d1a; color: #e0e0e0; border: 1px solid #26a69a; padding: 10px; font-family: monospace; font-size: 12px; border-radius: 6px; }
+    button { background: #26a69a; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin: 5px; font-size: 13px; }
+    button:hover { background: #14a800; }
+    .copy-hint { color: #888; font-size: 11px; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <h2>🔍 FreeUp Calc — Freelancer.com DOM Inspector</h2>
+  <p>Salin script di bawah ini, buka halaman proyek Hourly di Freelancer.com, lalu paste di Console (F12 → Console).</p>
+
+  <h3>📋 Script Diagnostik — Copy & Paste ke Console Freelancer.com</h3>
+  <div class="box">
+    <textarea id="scriptArea" readonly>
+// ============================================================
+// FreeUp Calc - Freelancer.com Hourly Rate DOM Inspector
+// Paste ini di Console (F12) saat berada di halaman proyek Freelancer
+// ============================================================
+(function() {
+  const results = { found: [], notFound: [], textSnippets: [], allNumbers: [] };
+  
+  console.log('%c🔍 FreeUp Calc DOM Inspector - Freelancer.com', 'color:#26a69a;font-size:14px;font-weight:bold');
+  
+  // 1. Test semua DOM selector yang digunakan content.js
+  const selectors = [
+    '[class*="AverageBid"]',
+    '[class*="average-bid"]',
+    '[class*="BidStats"] [class*="amount"]',
+    '[class*="bid-stats"] [class*="amount"]',
+    'app-hourly-project-stat [class*="value"]',
+    '[data-hourly-rate]',
+    'input[id*="hourly"]',
+    'input[name*="hourly"]',
+    'input[id*="rate"]',
+  ];
+  
+  console.group('DOM Selectors Test');
+  selectors.forEach(sel => {
+    try {
+      const el = document.querySelector(sel);
+      if (el) {
+        console.log('%c✅ FOUND: ' + sel, 'color:green', '→', el.textContent?.trim().substring(0,80) || el.value);
+        results.found.push({ sel, text: el.textContent?.trim() || el.value });
+      } else {
+        console.log('%c❌ NOT FOUND: ' + sel, 'color:#888');
+        results.notFound.push(sel);
+      }
+    } catch(e) {
+      console.log('%c⚠️ ERROR: ' + sel, 'color:orange', e.message);
+    }
+  });
+  console.groupEnd();
+  
+  // 2. Cari semua elemen yang mengandung angka + "/hr" atau "Avg"
+  console.group('Teks yang Mengandung "/hr" atau "avg" atau "average"');
+  const allEls = document.querySelectorAll('*');
+  const seen = new Set();
+  allEls.forEach(el => {
+    if (el.children.length > 0) return;
+    const text = el.textContent?.trim() || '';
+    if ((text.includes('/hr') || /avg|average/i.test(text)) && text.length < 120 && !seen.has(text)) {
+      seen.add(text);
+      console.log('%c→ ' + text, 'color:#26a69a', '| tag:', el.tagName, '| class:', el.className?.substring(0,60));
+      results.textSnippets.push({ text, tag: el.tagName, className: el.className?.substring(0,80) });
+    }
+  });
+  console.groupEnd();
+  
+  // 3. Test semua pola regex dari content.js
+  console.group('Regex Pattern Test di innerText');
+  const bodyText = document.body.innerText;
+  const patterns = [
+    { name: 'Avg(erage) Bid + /hr', re: /Avg(?:erage)?\s+Bid\s*[:\-]?\s*\$?([\d,]+(?:\.\d{1,2})?)\s*(?:USD)?\s*\/\s*hr/i },
+    { name: 'Average bid USD + /hr', re: /Average\s+bid\s+USD\s+([\d,]+(?:\.\d{1,2})?)\s*\/\s*hr/i },
+    { name: '$XX / hr', re: /\$([\d,]+(?:\.\d{1,2})?)\s*\/\s*hr/i },
+    { name: 'Hourly Rate', re: /Hourly\s+Rate\s*[:\-]?\s*\$?([\d,]+(?:\.\d{1,2})?)/i },
+    { name: 'Rate: $XX/hr', re: /\bRate\s*[:\-]\s*\$?([\d,]+(?:\.\d{1,2})?)\s*\/\s*hr/i },
+    { name: 'hourly (project type)', re: /hourly/i },
+    { name: 'fixed.price (project type)', re: /fixed[\s\-]?price/i },
+  ];
+  patterns.forEach(p => {
+    const m = bodyText.match(p.re);
+    if (m) {
+      console.log('%c✅ ' + p.name, 'color:green', '→ matched:', m[0].substring(0,80), '| capture:', m[1] || '(no capture)');
+    } else {
+      console.log('%c❌ ' + p.name, 'color:#888', '→ no match');
+    }
+  });
+  console.groupEnd();
+  
+  // 4. Snapshot 500 karakter area teks yang relevan
+  console.group('Potongan Teks Halaman (yang berisi angka + simbol $)');
+  const lines = bodyText.split('\n').filter(l => /\$[\d]|\/hr|\brate\b|\bavg\b|\bbid\b|\bhourly\b/i.test(l) && l.trim().length > 2 && l.trim().length < 200);
+  lines.slice(0, 20).forEach(l => console.log(l.trim()));
+  console.groupEnd();
+  
+  // 5. Output JSON untuk copy
+  const output = JSON.stringify({ found: results.found, textSnippets: results.textSnippets.slice(0,20) }, null, 2);
+  console.log('%c📋 Hasil JSON (copy ini dan bagikan):', 'color:#ff9800;font-weight:bold');
+  console.log(output);
+  
+  return output;
+})();
+    </textarea>
+    <p class="copy-hint">👆 Klik area di atas, tekan Ctrl+A lalu Ctrl+C untuk menyalin semua script</p>
+    <button onclick="copyScript()">📋 Salin Script ke Clipboard</button>
+  </div>
+
+  <h3>📥 Paste Hasil JSON di Sini untuk Analisis</h3>
+  <div class="box">
+    <textarea id="resultArea" placeholder='Paste hasil output JSON dari console di sini...'></textarea>
+    <button onclick="analyzeResult()">🔍 Analisis Hasil</button>
+  </div>
+
+  <div id="analysisOutput"></div>
+
+  <h3>📖 Instruksi Lengkap</h3>
+  <div class="box">
+    <ol style="line-height: 2">
+      <li>Buka halaman proyek <strong>Hourly</strong> di <code>freelancer.com</code> (harus sudah login)</li>
+      <li>Tekan <strong>F12</strong> → pilih tab <strong>Console</strong></li>
+      <li>Salin script di atas, paste ke console, tekan <strong>Enter</strong></li>
+      <li>Salin output JSON yang muncul di console (diawali <code>{</code>)</li>
+      <li>Paste di kotak "Hasil JSON" di atas dan klik Analisis</li>
+    </ol>
+  </div>
+
+  <script>
+    function copyScript() {
+      const ta = document.getElementById('scriptArea');
+      ta.select();
+      document.execCommand('copy');
+      alert('Script berhasil disalin!');
+    }
+
+    function analyzeResult() {
+      const raw = document.getElementById('resultArea').value.trim();
+      const out = document.getElementById('analysisOutput');
+      if (!raw) { out.innerHTML = '<p class="warn">Input kosong.</p>'; return; }
+
+      try {
+        const data = JSON.parse(raw);
+        let html = '<h3>🔎 Hasil Analisis</h3>';
+
+        html += '<div class="box"><h4>✅ Selector yang Ditemukan (' + (data.found?.length || 0) + ')</h4>';
+        if (data.found?.length) {
+          data.found.forEach(f => {
+            html += `<pre class="ok">${f.sel}\n→ Nilai: ${f.text}</pre>`;
+          });
+        } else {
+          html += '<pre class="fail">Tidak ada selector yang berhasil match di DOM.</pre>';
+          html += '<pre class="warn">Artinya Freelancer menggunakan class name yang berbeda. Gunakan textSnippets untuk menemukan pola teks yang benar.</pre>';
+        }
+        html += '</div>';
+
+        html += '<div class="box"><h4>📝 Teks yang Mengandung Rate/Avg/hr (' + (data.textSnippets?.length || 0) + ')</h4>';
+        if (data.textSnippets?.length) {
+          data.textSnippets.forEach(s => {
+            html += `<pre>${s.text}\n<span style="color:#888">tag: ${s.tag} | class: ${s.className}</span></pre>`;
+          });
+        } else {
+          html += '<pre class="fail">Tidak ada teks yang ditemukan. Coba di halaman proyek yang sudah fully loaded.</pre>';
+        }
+        html += '</div>';
+
+        out.innerHTML = html;
+      } catch(e) {
+        out.innerHTML = `<pre class="fail">JSON tidak valid: ${e.message}\n\nInput yang diterima:\n${raw.substring(0,200)}</pre>`;
+      }
+    }
+  </script>
+</body>
+</html>

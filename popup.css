@@ -1,0 +1,269 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.hidden {
+  display: none !important;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: #f5f7fa;
+  color: #1f2937;
+  width: 340px;
+  font-size: 14px;
+}
+
+.app {
+  padding: 16px;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-icon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #14a800, #0e8a00);
+  color: white;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.logo h1 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.subtitle {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 1px;
+}
+
+.detect-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #14a800;
+  transition: all 0.15s;
+}
+
+.detect-btn:hover {
+  background: #14a800;
+  color: white;
+  border-color: #14a800;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  margin-bottom: 12px;
+}
+
+.form-group {
+  margin-bottom: 12px;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 5px;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #f9fafb;
+  outline: none;
+  transition: all 0.15s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: #14a800;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(20, 168, 0, 0.12);
+}
+
+.radio-group {
+  display: flex;
+  gap: 20px;
+}
+
+.radio-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.radio-item label {
+  display: inline;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 0;
+  color: #1f2937;
+  cursor: pointer;
+}
+
+.radio-item input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: #14a800;
+}
+
+.fee-summary {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed #e5e7eb;
+}
+
+.fee-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.fee-row.hidden {
+  display: none;
+}
+
+.fee-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.total-row {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid #e5e7eb;
+  font-weight: 700;
+  color: #b45309;
+  font-size: 13px;
+}
+
+.idr-equiv-row {
+  padding-top: 3px;
+  padding-bottom: 2px;
+}
+
+.idr-equiv-label {
+  font-size: 11px;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.idr-equiv-value {
+  font-size: 11px;
+  color: #9ca3af;
+  font-style: italic;
+  font-weight: 500;
+}
+
+.result-card {
+  background: linear-gradient(135deg, #14a800, #0e8a00);
+  border-radius: 12px;
+  padding: 16px;
+  color: white;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(20, 168, 0, 0.25);
+  margin-bottom: 12px;
+}
+
+.result-label {
+  font-size: 12px;
+  opacity: 0.85;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.result-amount {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.result-meta {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.result-meta .dot {
+  margin: 0 6px;
+}
+
+.rate-info {
+  opacity: 0.7;
+  font-size: 11px;
+  margin-left: 4px;
+}
+
+.app-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.footer-separator {
+  color: #9ca3af;
+  font-size: 11px;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #14a800;
+  font-size: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  padding: 6px;
+}
+
+.link-btn:hover {
+  text-decoration: underline;
+}

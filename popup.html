@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FreeUp Calc</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <div class="logo">
+        <span class="logo-icon">$</span>
+        <div>
+          <h1>FreeUp Calc</h1>
+          <p class="subtitle">Hitung penghasilan bersihmu</p>
+        </div>
+      </div>
+      <button id="detectBtn" class="detect-btn" title="Deteksi dari halaman Upwork">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+      </button>
+    </header>
+
+    <section class="card">
+      <div class="form-group">
+        <label for="platformSelect">Platform</label>
+        <select id="platformSelect">
+          <option value="upwork">Upwork</option>
+          <option value="freelancer">Freelancer.com</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Tipe Proyek</label>
+        <div class="radio-group">
+          <div class="radio-item">
+            <label for="projectTypeFixed">Fixed-Price</label>
+            <input type="radio" id="projectTypeFixed" name="projectType" value="fixed" checked />
+          </div>
+          <div class="radio-item">
+            <label for="projectTypeHourly">Hourly</label>
+            <input type="radio" id="projectTypeHourly" name="projectType" value="hourly" />
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group" id="bidAmountGroup">
+        <label for="bidAmount">Jumlah Bid (USD)</label>
+        <input type="number" id="bidAmount" placeholder="1000" min="0" step="0.01" />
+      </div>
+
+      <div class="form-group hidden" id="hourlyRateGroup">
+        <label for="hourlyRate">Hourly Rate (USD)</label>
+        <input type="number" id="hourlyRate" placeholder="25" min="0" step="0.01" />
+      </div>
+
+      <div class="form-group hidden" id="hoursGroup">
+        <label for="hours">Jumlah Jam</label>
+        <input type="number" id="hours" placeholder="40" min="0" step="1" />
+      </div>
+
+      <div class="form-group">
+        <label for="connectsUsed">Connects Terpakai</label>
+        <input type="number" id="connectsUsed" placeholder="4" min="0" step="1" />
+      </div>
+
+      <div class="form-group">
+        <label for="withdrawalMethod">Metode Withdrawal</label>
+        <select id="withdrawalMethod"></select>
+      </div>
+
+      <div class="fee-summary">
+        <div class="fee-row">
+          <span>Service Fee (<span id="serviceFeeRate">10</span>%)</span>
+          <span class="fee-value" id="serviceFee">-</span>
+        </div>
+        <div class="fee-row hidden" id="vatRow">
+          <span>VAT/GST (<span id="vatRate">0</span>%)</span>
+          <span class="fee-value" id="vatFee">-</span>
+        </div>
+        <div class="fee-row">
+          <span>Connect Cost</span>
+          <span class="fee-value" id="connectCost">-</span>
+        </div>
+        <div class="fee-row">
+          <span>Withdrawal Fee</span>
+          <span class="fee-value" id="withdrawalFee">-</span>
+        </div>
+        <div class="fee-row">
+          <span>Provider Fee</span>
+          <span class="fee-value" id="providerFee">-</span>
+        </div>
+        <div class="fee-row hidden" id="fxRow">
+          <span>FX Conversion (<span id="fxMargin">0</span>%)</span>
+          <span class="fee-value" id="fxCost">-</span>
+        </div>
+        <div class="fee-row total-row">
+          <span>Total Potongan</span>
+          <span class="fee-value" id="totalFees">-</span>
+        </div>
+        <div class="fee-row idr-equiv-row hidden" id="totalFeesIdrRow">
+          <span class="idr-equiv-label">≈ dalam <span id="totalFeesIdrCurrency">IDR</span></span>
+          <span class="fee-value idr-equiv-value" id="totalFeesIdr">-</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="result-card">
+      <div class="result-label">Penghasilan Bersih</div>
+      <div class="result-amount" id="netAmount">-</div>
+      <div class="result-meta">
+        <span id="takeHomePct">-</span> take-home
+        <span class="dot">•</span>
+        <span id="netTarget">-</span>
+      </div>
+    </section>
+
+    <footer class="app-footer">
+      <button id="optionsBtn" class="link-btn">Pengaturan Fee &rarr;</button>
+      <span class="footer-separator">•</span>
+      <button id="userGuideBtn" class="link-btn" title="Buka Panduan Pengguna (PDF)">User Guide &rarr;</button>
+    </footer>
+  </div>
+
+  <script src="calculator.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

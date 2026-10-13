@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Upwork Calc - IDR Test</title>
+  <link rel="stylesheet" href="popup.css" />
+  <style>
+    body { background: #f5f7fa; padding: 20px; }
+    .test-wrap { width: 340px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 16px; }
+  </style>
+</head>
+<body>
+  <div class="test-wrap" id="popupRoot"></div>
+
+  <script>
+    window.chrome = {
+      storage: {
+        sync: {
+          get(_, cb) {
+            cb({
+              freeupCalcConfig: {
+                upwork: {
+                  serviceFeeRate: 10,
+                  connectPrice: 0.15,
+                  vatRate: 0,
+                  fxMargin: 0,
+                  targetCurrency: 'IDR',
+                  exchangeRate: 16000,
+                  selectedMethod: 'paypal',
+                  methods: {
+                    ach_us: { name: 'Direct to U.S. Bank (ACH)', flatFee: 0, providerRate: 0, fxMargin: 0 },
+                    local_bank: { name: 'Direct to Local Bank', flatFee: 0.99, providerRate: 0, fxMargin: 0 },
+                    wire: { name: 'U.S. Dollar Wire Transfer', flatFee: 50, providerRate: 0, fxMargin: 0 },
+                    instant_pay: { name: 'Instant Pay (U.S.)', flatFee: 2, providerRate: 0, fxMargin: 0 },
+                    paypal: { name: 'PayPal', flatFee: 2, providerRate: 2.9, fxMargin: 2.5 },
+                    payoneer: { name: 'Payoneer', flatFee: 1, providerRate: 0.5, fxMargin: 1.5 },
+                    wise_ach: { name: 'Wise (ACH - US Domestic)', flatFee: 0, providerRate: 0, fxMargin: 0.4 },
+                    wise_swift: { name: 'Wise (SWIFT Wire)', flatFee: 6.11, providerRate: 0, fxMargin: 0.4 }
+                  }
+                }
+              }
+            });
+          },
+          set(_, cb) { if (cb) cb(); }
+        }
+      },
+      runtime: { openOptionsPage() {} },
+      tabs: {
+        query() { return Promise.resolve([{id:1,url:'https://www.upwork.com/'}]); },
+        sendMessage() { return Promise.resolve({success:false}); }
+      }
+    };
+  </script>
+  <script src="calculator.js"></script>
+  <script>
+    fetch('popup.html')
+      .then(r => r.text())
+      .then(html => {
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const body = doc.body;
+        body.querySelectorAll('script').forEach(s => s.remove());
+        document.getElementById('popupRoot').innerHTML = body.innerHTML;
+        const s = document.createElement('script');
+        s.src = 'popup.js';
+        document.body.appendChild(s);
+      });
+  </script>
+</body>
+</html>

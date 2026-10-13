@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pengaturan - FreeUp Calc</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="page-header">
+      <h1>⚙️ Pengaturan FreeUp Calc</h1>
+      <p class="page-sub">Sesuaikan fee sesuai kondisi akun kamu. Semua perubahan otomatis tersimpan.</p>
+    </header>
+
+    <div class="form-group">
+      <label for="platformSelect">Pilih Platform</label>
+      <select id="platformSelect">
+        <option value="upwork">Upwork</option>
+        <option value="freelancer">Freelancer.com</option>
+      </select>
+    </div>
+
+    <section class="panel">
+      <h2>Fee Dasar Platform</h2>
+
+      <div class="grid-2">
+        <div class="field">
+          <label for="serviceFeeRate">Service Fee Rate (%)</label>
+          <input type="number" id="serviceFeeRate" min="0" max="15" step="0.1" />
+          <small>0% – 15% per kontrak (kebanyakan 10%). Di-lock sejak submit proposal.</small>
+        </div>
+
+        <div class="field">
+          <label for="connectPrice">Harga per Connect (USD)</label>
+          <input type="number" id="connectPrice" min="0" step="0.01" />
+          <small>Default $0.15 per connect.</small>
+        </div>
+
+        <div class="field">
+          <label for="vatRate">VAT / GST (%)</label>
+          <input type="number" id="vatRate" min="0" step="0.1" />
+          <small>Pajak yang dikenakan pada service fee. 0 jika punya tax ID valid.</small>
+        </div>
+
+        <div class="field">
+          <label for="selectedMethod">Metode Withdrawal Default</label>
+          <select id="selectedMethod"></select>
+          <small>Metode yang terpilih saat pertama kali kalkulator dibuka.</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Konversi Mata Uang</h2>
+      <div class="grid-2">
+        <div class="field">
+          <label for="fxMargin">FX Margin (%)</label>
+          <input type="number" id="fxMargin" min="0" step="0.1" />
+          <small>Spread bank/provider (biasanya 1% – 3%). 0 jika tarik USD.</small>
+        </div>
+
+        <div class="field">
+          <label for="targetCurrency">Mata Uang Tujuan</label>
+          <input type="text" id="targetCurrency" maxlength="3" placeholder="IDR" />
+          <small>Kode ISO 4217 (mis. IDR, EUR, PHP). Kosongkan = USD.</small>
+        </div>
+
+        <div class="field">
+          <label for="exchangeRate">Kurs (1 USD = ?)</label>
+          <div class="input-with-button">
+            <input type="number" id="exchangeRate" min="0" step="0.0001" placeholder="16000" />
+            <button id="updateRateBtn" class="btn btn-primary">Update Otomatis</button>
+          </div>
+          <small id="rateHint">Kurs penuh. Contoh: 1 USD = Rp16.000 → isi <b>16000</b>. 1 jika USD.</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Metode Withdrawal</h2>
+      <p class="panel-desc">Atur flat fee (USD) dan provider fee (%) untuk setiap metode withdrawal.</p>
+      <div id="methodsList" class="methods-list"></div>
+    </section>
+
+    <section class="panel panel-scam">
+      <h2>🔍 Scam Detector</h2>
+      <p class="panel-desc">Analisis otomatis potensi risiko penipuan pada setiap kartu proyek di halaman pencarian Upwork dan Freelancer.com. Badge 🟢 Aman / 🟡 Perlu Cek / 🔴 Berisiko akan muncul langsung di kartu proyek.</p>
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <span class="toggle-label">Aktifkan Scam Detector</span>
+          <span class="toggle-desc">Deteksi badge risiko di halaman pencarian proyek</span>
+        </div>
+        <label class="toggle-switch" for="scamDetectorEnabled">
+          <input type="checkbox" id="scamDetectorEnabled" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="scam-legend">
+        <span class="badge-safe">🟢 Aman</span> — Payment verified, riwayat spending baik, deskripsi jelas
+        <br>
+        <span class="badge-neutral">🟡 Perlu Cek</span> — Ada beberapa sinyal yang perlu diperhatikan
+        <br>
+        <span class="badge-risky">🔴 Berisiko</span> — Payment unverified, $0 spent, atau ada kontak luar platform
+      </div>
+    </section>
+
+    <div class="actions">
+      <button id="resetBtn" class="btn btn-secondary">Reset ke Default</button>
+      <span id="saveStatus" class="save-status">Tersimpan</span>
+    </div>
+
+    <footer class="page-footer">
+      <p>Fee mengacu pada kebijakan platform. Cek <a href="https://www.upwork.com/legal/fees" target="_blank">Upwork Fees</a> dan <a href="https://www.freelancer.com/feesandcharges" target="_blank">Freelancer Fees</a> untuk info terbaru.</p>
+    </footer>
+  </div>
+
+  <script src="calculator.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>
