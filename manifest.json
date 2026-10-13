@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "Hitung penghasilan bersih di berbagai platform freelance setelah platform fee, connect cost, withdrawal fee, currency conversion, dan VAT.",
   "permissions": ["storage", "activeTab", "scripting"],
-  "host_permissions": ["https://www.upwork.com/*", "https://upwork.com/*", "https://www.freelancer.com/*", "https://freelancer.com/*"],
+  "host_permissions": ["https://www.upwork.com/*", "https://upwork.com/*", "https://www.freelancer.com/*", "https://freelancer.com/*", "https://open.er-api.com/*", "https://allratestoday.com/*"],
   "action": {
     "default_popup": "popup.html",
     "default_title": "FreeUp Calc"

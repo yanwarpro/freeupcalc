@@ -58,7 +58,7 @@
       </div>
 
       <div class="form-group hidden" id="hoursGroup">
-        <label for="hours">Jumlah Jam</label>
+        <label for="hours">Jumlah Jam / Minggu</label>
         <input type="number" id="hours" placeholder="40" min="0" step="1" />
       </div>
 
@@ -109,12 +109,18 @@
     </section>
 
     <section class="result-card">
-      <div class="result-label">Penghasilan Bersih</div>
+      <div class="result-label" id="resultLabel">Penghasilan Bersih</div>
       <div class="result-amount" id="netAmount">-</div>
       <div class="result-meta">
         <span id="takeHomePct">-</span> take-home
         <span class="dot">•</span>
         <span id="netTarget">-</span>
+      </div>
+      <div class="result-divider" id="resultDivider"></div>
+      <div class="result-monthly" id="resultMonthly">
+        <div class="monthly-label">Estimasi Bersih / Bulan</div>
+        <div class="monthly-amount" id="monthlyAmount">-</div>
+        <div class="monthly-target" id="monthlyTarget">-</div>
       </div>
     </section>
 

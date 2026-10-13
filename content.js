@@ -26,6 +26,28 @@
     return 'unknown';
   }
 
+  // ─── Deteksi mata uang dari simbol/kode ─────────────────────────────────────
+  // Freelancer.com menampilkan budget dalam berbagai mata uang (₹, €, £, A$, dll)
+  function detectCurrency(text) {
+    if (!text) return 'USD';
+    // Urutan penting: cek kode 3 huruf dulu (INR, EUR, GBP) lalu simbol
+    const codeMatch = text.match(/\b(USD|EUR|GBP|INR|AUD|CAD|SGD|MYR|PHP|JPY|CNY|NZD|HKD|CHF|SEK|NOK|DKK|ZAR|BRL|MXN|KRW)\b/);
+    if (codeMatch) return codeMatch[1];
+
+    // Simbol mata uang
+    if (/\u20B9/.test(text)) return 'INR';          // ₹
+    if (/\u20AC/.test(text)) return 'EUR';          // €
+    if (/\u00A3/.test(text)) return 'GBP';          // £
+    if (/\u00A5/.test(text)) return 'JPY';          // ¥
+    if (/A\$/.test(text) || /AUD\s*\$/.test(text)) return 'AUD';
+    if (/C\$/.test(text) || /CAD\s*\$/.test(text)) return 'CAD';
+    if (/S\$/.test(text) || /SGD\s*\$/.test(text)) return 'SGD';
+    if (/R\$/.test(text)) return 'BRL';
+    if (/\$/.test(text)) return 'USD';              // $ default
+
+    return 'USD';
+  }
+
   // ─── Upwork Extractors ──────────────────────────────────────────────────────
   function extractConnectsUpwork() {
     const allText = document.body.innerText;
@@ -133,6 +155,7 @@
   }
 
   // ─── Freelancer.com Extractors ──────────────────────────────────────────────
+  // Mengembalikan { amount, currency } agar bisa dikonversi ke USD
   function extractBudgetFreelancer() {
     // 1. Cari elemen dengan label "Budget" / "Anggaran" — pola DOM Freelancer
     const labelSelectors = [
@@ -158,36 +181,62 @@
       try {
         const el = document.querySelector(sel);
         if (el) {
-          const v = extractNumber(el.textContent || el.value || '');
-          if (v && v > 0) return v;
+          const raw = el.textContent || el.value || '';
+          const v = extractNumber(raw);
+          if (v && v > 0) {
+            const currency = detectCurrency(raw) || detectCurrency(el.parentElement?.textContent || '');
+            return { amount: v, currency };
+          }
         }
       } catch (e) { /* skip invalid selectors */ }
     }
 
-    // 2. Pendekatan teks — cari pola "$X" atau "USD X" di teks halaman
+    // 2. Pendekatan teks — cari pola budget dengan simbol/kode mata uang
     const allText = document.body.innerText;
+    // Pola menangkap simbol/kode mata uang + angka (mendukung $, ₹, €, £, A$, dll)
     const budgetPatterns = [
-      /Budget[:\s\n]+\$?([\d,]+(?:\.\d{1,2})?)\s*(?:USD)?/i,
-      /Anggaran[:\s\n]+\$?([\d,]+(?:\.\d{1,2})?)\s*(?:USD)?/i,
-      /Average Bid[:\s\n]+\$?([\d,]+(?:\.\d{1,2})?)/i,
-      /Fixed\s+Price[:\s\n]+\$?([\d,]+(?:\.\d{1,2})?)/i,
-      /Project Budget[:\s\n]+\$?([\d,]+(?:\.\d{1,2})?)/i,
+      /Budget[:\s\n]+([^\d\n]*?)([\d,]+(?:\.\d{1,2})?)/i,
+      /Anggaran[:\s\n]+([^\d\n]*?)([\d,]+(?:\.\d{1,2})?)/i,
+      /Average\s+Bid[:\s\n]+([^\d\n]*?)([\d,]+(?:\.\d{1,2})?)/i,
+      /Fixed\s+Price[:\s\n]+([^\d\n]*?)([\d,]+(?:\.\d{1,2})?)/i,
+      /Project\s+Budget[:\s\n]+([^\d\n]*?)([\d,]+(?:\.\d{1,2})?)/i,
     ];
 
     for (const p of budgetPatterns) {
       const m = allText.match(p);
       if (m) {
-        const v = extractNumber(m[1]);
-        if (v && v > 0) return v;
+        const v = extractNumber(m[2]);
+        if (v && v > 0) {
+          const currency = detectCurrency(m[1] + m[2]);
+          return { amount: v, currency };
+        }
       }
     }
 
-    // 3. Fallback: semua input number di form bid
+    // 3. Fallback: cari angka dengan simbol mata uang di budget card
+    //    Ambil potongan teks di sekitar kata "Budget"
+    const budgetIdx = allText.search(/Budget|Anggaran/i);
+    if (budgetIdx >= 0) {
+      const slice = allText.substring(budgetIdx, budgetIdx + 120);
+      const moneyMatch = slice.match(/([^\d\s]{0,4})[\s]*([\d,]+(?:\.\d{1,2})?)/);
+      if (moneyMatch) {
+        const v = extractNumber(moneyMatch[2]);
+        if (v && v > 0) {
+          const currency = detectCurrency(moneyMatch[1] + moneyMatch[2]);
+          return { amount: v, currency };
+        }
+      }
+    }
+
+    // 4. Fallback terakhir: semua input number di form bid
     const numInputs = document.querySelectorAll('input[type="number"]');
     for (const el of numInputs) {
       if (el.value) {
         const v = extractNumber(el.value);
-        if (v && v > 0) return v;
+        if (v && v > 0) {
+          const currency = detectCurrency(el.closest('[class*="currency"]')?.textContent || '');
+          return { amount: v, currency };
+        }
       }
     }
 
@@ -225,7 +274,10 @@
         if (el) {
           const raw = el.textContent || el.value || el.getAttribute('data-hourly-rate') || '';
           const v = extractNumber(raw);
-          if (v && v > 0 && v < 10000) return v; // sanity check rate masuk akal
+          if (v && v > 0 && v < 10000) {
+            const currency = detectCurrency(raw) || detectCurrency(el.parentElement?.textContent || '');
+            return { amount: v, currency };
+          }
         }
       } catch (e) { /* skip */ }
     }
@@ -233,23 +285,26 @@
     // 2. Cari di teks halaman dengan pola yang lebih beragam
     const allText = document.body.innerText;
     const patterns = [
-      // "Avg Bid: $XX/hr" atau "Average Bid: $XX / hr"
-      /Avg(?:erage)?\s+Bid\s*[:\-]?\s*\$?([\d,]+(?:\.\d{1,2})?)\s*(?:USD)?\s*\/\s*hr/i,
+      // "Avg Bid: ₹XX/hr" atau "Average Bid: $XX / hr"
+      /Avg(?:erage)?\s+Bid\s*[:\-]?\s*([^\d\n\s]{0,6})[\s]*([\d,]+(?:\.\d{1,2})?)\s*(?:[A-Z]{3})?\s*\/\s*hr/i,
       // "Average bid USD XX/hr"
-      /Average\s+bid\s+USD\s+([\d,]+(?:\.\d{1,2})?)\s*\/\s*hr/i,
-      // "$XX / hr" dalam konteks hourly project
-      /\$([\d,]+(?:\.\d{1,2})?)\s*\/\s*hr/i,
-      // "Hourly Rate: $XX"
-      /Hourly\s+Rate\s*[:\-]?\s*\$?([\d,]+(?:\.\d{1,2})?)/i,
-      // "Rate: $XX/hr"
-      /\bRate\s*[:\-]\s*\$?([\d,]+(?:\.\d{1,2})?)\s*\/\s*hr/i,
+      /Average\s+bid\s+(USD|EUR|GBP|INR|AUD|CAD|SGD|MYR|PHP|JPY)\s+([\d,]+(?:\.\d{1,2})?)\s*\/\s*hr/i,
+      // "₹XX / hr" atau "$XX / hr"
+      /([^\d\s]{0,4})[\s]*([\d,]+(?:\.\d{1,2})?)\s*\/\s*hr/i,
+      // "Hourly Rate: ₹XX"
+      /Hourly\s+Rate\s*[:\-]?\s*([^\d\n\s]{0,6})[\s]*([\d,]+(?:\.\d{1,2})?)/i,
+      // "Rate: ₹XX/hr"
+      /\bRate\s*[:\-]\s*([^\d\n\s]{0,6})[\s]*([\d,]+(?:\.\d{1,2})?)\s*\/\s*hr/i,
     ];
 
     for (const p of patterns) {
       const m = allText.match(p);
       if (m) {
-        const v = extractNumber(m[1]);
-        if (v && v > 0 && v < 10000) return v;
+        const v = extractNumber(m[2]);
+        if (v && v > 0 && v < 10000) {
+          const currency = detectCurrency(m[1] + m[2]);
+          return { amount: v, currency };
+        }
       }
     }
 
@@ -267,6 +322,7 @@
           const projectType = extractProjectTypeUpwork();
           data.projectType = projectType;
           data.bidAmount = extractBidAmountUpwork();
+          data.currency = 'USD';
           data.connectsUsed = extractConnectsUpwork();
           if (projectType === 'hourly') {
             // Untuk Upwork hourly, coba baca rate dari input form bid
@@ -280,10 +336,24 @@
           data.connectsUsed = 0; // Freelancer tidak pakai connects
 
           if (projectType === 'hourly') {
-            data.hourlyRate = extractHourlyRateFreelancer();
+            const hourly = extractHourlyRateFreelancer();
+            if (hourly) {
+              data.hourlyRate = hourly.amount;
+              data.currency = hourly.currency;
+            } else {
+              data.hourlyRate = null;
+              data.currency = 'USD';
+            }
             data.bidAmount = null;
           } else {
-            data.bidAmount = extractBudgetFreelancer();
+            const budget = extractBudgetFreelancer();
+            if (budget) {
+              data.bidAmount = budget.amount;
+              data.currency = budget.currency;
+            } else {
+              data.bidAmount = null;
+              data.currency = 'USD';
+            }
             data.hourlyRate = null;
           }
         }

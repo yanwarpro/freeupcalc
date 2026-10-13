@@ -89,6 +89,13 @@
   color: #86efac;
 }
 
+/* Badge ukuran besar — untuk halaman detail proyek Freelancer */
+.freeup-badge.freeup-badge-lg {
+  font-size: 14px;
+  padding: 6px 14px;
+  margin-top: 10px;
+}
+
 /* Wrapper agar badge tidak geser layout */
 .freeup-badge-wrap {
   display: block;

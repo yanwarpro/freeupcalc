@@ -38,7 +38,12 @@
     userGuideBtn: document.getElementById('userGuideBtn'),
     totalFeesIdrRow: document.getElementById('totalFeesIdrRow'),
     totalFeesIdr: document.getElementById('totalFeesIdr'),
-    totalFeesIdrCurrency: document.getElementById('totalFeesIdrCurrency')
+    totalFeesIdrCurrency: document.getElementById('totalFeesIdrCurrency'),
+    resultLabel: document.getElementById('resultLabel'),
+    resultDivider: document.getElementById('resultDivider'),
+    resultMonthly: document.getElementById('resultMonthly'),
+    monthlyAmount: document.getElementById('monthlyAmount'),
+    monthlyTarget: document.getElementById('monthlyTarget')
   };
 
   async function init() {
@@ -149,11 +154,13 @@
   function recalculate() {
     const platform = els.platformSelect.value;
     const projectType = els.projectTypeFixed.checked ? 'fixed' : 'hourly';
+    const isHourly = projectType === 'hourly';
 
     let bidAmountValue = parseFloat(els.bidAmount.value) || 0;
-    if (projectType === 'hourly') {
+    if (isHourly) {
       const hourlyRateValue = parseFloat(els.hourlyRate.value) || 0;
       const hoursValue = parseFloat(els.hours.value) || 0;
+      // Untuk hourly, `hours` dianggap sebagai jam/minggu → bidAmount = pendapatan mingguan
       bidAmountValue = hourlyRateValue * hoursValue;
     }
 
@@ -162,7 +169,7 @@
       connectsUsed: els.connectsUsed.value,
       method: els.withdrawalMethod.value,
       platform: platform,
-      projectType: projectType // Pass projectType to calculate function
+      projectType: projectType
     };
     const r = Calc.calculate(inputs, config);
 
@@ -178,6 +185,8 @@
     els.fxCost.textContent = '-' + Calc.formatCurrency(Math.abs(r.fxCost));
     els.totalFees.textContent = '-' + Calc.formatCurrency(Math.abs(r.totalFees));
 
+    // Label & nilai utama: untuk hourly tampilkan per minggu
+    els.resultLabel.textContent = isHourly ? 'Penghasilan Bersih / Minggu' : 'Penghasilan Bersih';
     els.netAmount.textContent = Calc.formatCurrency(r.netUsd);
     els.takeHomePct.textContent = r.takeHomePct + '%';
 
@@ -200,6 +209,27 @@
     } else {
       els.netTarget.textContent = r.methodName;
     }
+
+    // ── Estimasi bulanan (hanya untuk hourly) ──
+    if (isHourly) {
+      // 1 bulan ≈ 4.33 minggu (rata-rata 52 minggu / 12 bulan)
+      const WEEKS_PER_MONTH = 4.33;
+      const monthlyUsd = Calc.round2(r.netUsd * WEEKS_PER_MONTH);
+      els.monthlyAmount.textContent = Calc.formatCurrency(monthlyUsd);
+
+      if (hasCurrency) {
+        const monthlyTarget = Calc.round2(monthlyUsd * config.exchangeRate);
+        els.monthlyTarget.textContent = '≈ ' + Calc.formatCurrency(monthlyTarget, config.targetCurrency);
+      } else {
+        els.monthlyTarget.textContent = r.methodName;
+      }
+
+      els.resultDivider.classList.remove('hidden');
+      els.resultMonthly.classList.remove('hidden');
+    } else {
+      els.resultDivider.classList.add('hidden');
+      els.resultMonthly.classList.add('hidden');
+    }
   }
 
   // Terapkan data deteksi ke semua field UI
@@ -213,11 +243,19 @@
     if (d.projectType === 'hourly') {
       els.projectTypeHourly.checked = true;
       toggleProjectInputs();
-      if (d.hourlyRate != null) els.hourlyRate.value = d.hourlyRate;
+      if (d.hourlyRate != null) {
+        // Konversi ke USD jika mata uang bukan USD
+        const usdRate = await Calc.convertToUsd(d.hourlyRate, d.currency || 'USD');
+        els.hourlyRate.value = usdRate;
+      }
     } else {
       els.projectTypeFixed.checked = true;
       toggleProjectInputs();
-      if (d.bidAmount != null) els.bidAmount.value = d.bidAmount;
+      if (d.bidAmount != null) {
+        // Konversi ke USD jika mata uang bukan USD
+        const usdBid = await Calc.convertToUsd(d.bidAmount, d.currency || 'USD');
+        els.bidAmount.value = usdBid;
+      }
     }
 
     // Connects (Upwork only)
@@ -230,6 +268,13 @@
     populateMethods();
     applyConfigLabels();
     recalculate();
+
+    // Tampilkan info konversi mata uang (jika bukan USD)
+    if (d.currency && d.currency.toUpperCase() !== 'USD') {
+      const original = d.projectType === 'hourly' ? d.hourlyRate : d.bidAmount;
+      const converted = d.projectType === 'hourly' ? els.hourlyRate.value : els.bidAmount.value;
+      console.log(`[FreeUp Calc] Konversi ${original} ${d.currency} → $${converted} USD`);
+    }
   }
 
   async function detectFromPage() {

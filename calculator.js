@@ -7,8 +7,8 @@
       connectPrice: 0.15,
       vatRate: 0,
       fxMargin: 0,
-      targetCurrency: 'USD',
-      exchangeRate: 1,
+      targetCurrency: 'IDR',
+      exchangeRate: 16000,
       selectedMethod: 'paypal',
       methods: {
         ach_us: { name: 'Direct to U.S. Bank (ACH)', flatFee: 0, providerRate: 0, fxMargin: 0 },
@@ -26,8 +26,8 @@
       connectPrice: 0,
       vatRate: 0,
       fxMargin: 0,
-      targetCurrency: 'USD',
-      exchangeRate: 1,
+      targetCurrency: 'IDR',
+      exchangeRate: 16000,
       selectedMethod: 'paypal',
       methods: {
         ach_us: { name: 'Direct to U.S. Bank (ACH)', flatFee: 0, providerRate: 0, fxMargin: 0 },
@@ -168,6 +168,43 @@
     }
   }
 
+  // ─── Currency conversion helpers ────────────────────────────────────────────
+  // Cache rate exchange agar tidak fetch berulang (12 jam)
+  const _rateCache = { data: null, ts: 0 };
+  const RATE_CACHE_MS = 12 * 60 * 60 * 1000;
+
+  async function fetchUsdRates() {
+    const now = Date.now();
+    if (_rateCache.data && (now - _rateCache.ts) < RATE_CACHE_MS) {
+      return _rateCache.data;
+    }
+    try {
+      const response = await fetch('https://open.er-api.com/v6/latest/USD');
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const data = await response.json();
+      if (data && data.rates) {
+        _rateCache.data = data.rates;
+        _rateCache.ts = now;
+        return data.rates;
+      }
+    } catch (e) {
+      console.error('Error fetching USD rates:', e);
+    }
+    return null;
+  }
+
+  // Konversi amount dari mata uang `currency` ke USD
+  async function convertToUsd(amount, currency) {
+    if (!amount || !currency) return amount;
+    currency = currency.toUpperCase();
+    if (currency === 'USD') return amount;
+    const rates = await fetchUsdRates();
+    if (!rates) return amount; // fallback: tidak bisa konversi, return asli
+    const rate = rates[currency];
+    if (!rate || rate <= 0) return amount;
+    return round2(amount / rate);
+  }
+
   const CURRENCY_LOCALES = {
     IDR: 'id-ID',
     USD: 'en-US',
@@ -215,6 +252,8 @@
     calculate,
     formatCurrency,
     round2,
-    fetchExchangeRate
+    fetchExchangeRate,
+    fetchUsdRates,
+    convertToUsd
   };
 })(typeof window !== 'undefined' ? window : this);
