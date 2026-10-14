@@ -46,6 +46,19 @@
   const DEFAULT_GLOBAL_CONFIG = {
     scamDetector: {
       enabled: true  // ON/OFF fitur deteksi scam di halaman listing
+    },
+    kursConversion: {
+      enabled: true,  // ON/OFF fitur kurs conversion badge di list projek
+      targetCurrency: 'IDR',
+      rates: {
+        USD: 16000,
+        EUR: 17500,
+        GBP: 21000,
+        AUD: 10500,
+        CAD: 11800,
+        SGD: 12200,
+        INR: 190
+      }
     }
   };
 
@@ -242,6 +255,131 @@
     }
   }
 
+  function formatRupiah(amount) {
+    if (amount === null || amount === undefined || isNaN(amount)) return 'Rp 0';
+    const rounded = Math.round(amount);
+    return 'Rp ' + rounded.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+
+  async function fetchAllIdrRates() {
+    try {
+      const response = await fetch('https://open.er-api.com/v6/latest/USD');
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const data = await response.json();
+      if (data && data.rates && data.rates.IDR) {
+        const idrPerUsd = data.rates.IDR;
+        const rates = {
+          USD: Math.round(idrPerUsd),
+          EUR: Math.round(idrPerUsd / (data.rates.EUR || 0.92)),
+          GBP: Math.round(idrPerUsd / (data.rates.GBP || 0.79)),
+          AUD: Math.round(idrPerUsd / (data.rates.AUD || 1.52)),
+          CAD: Math.round(idrPerUsd / (data.rates.CAD || 1.36)),
+          SGD: Math.round(idrPerUsd / (data.rates.SGD || 1.34)),
+          INR: round2(idrPerUsd / (data.rates.INR || 84))
+        };
+        return rates;
+      }
+    } catch (e) {
+      console.error('Error fetching all IDR rates:', e);
+    }
+    return null;
+  }
+
+  function parseRateText(text) {
+    if (!text) return null;
+    const clean = text.replace(/[\n\r\t]+/g, ' ').trim();
+
+    // 1. Detect Currency
+    let currency = 'USD';
+    const codeMatch = clean.match(/\b(USD|EUR|GBP|INR|AUD|CAD|SGD|MYR|PHP|JPY|CNY|NZD|HKD|CHF|IDR)\b/i);
+    if (codeMatch) {
+      currency = codeMatch[1].toUpperCase();
+    } else if (/₹/.test(clean)) {
+      currency = 'INR';
+    } else if (/€/.test(clean)) {
+      currency = 'EUR';
+    } else if (/£/.test(clean)) {
+      currency = 'GBP';
+    } else if (/¥/.test(clean)) {
+      currency = 'JPY';
+    } else if (/A\$|AUD/i.test(clean)) {
+      currency = 'AUD';
+    } else if (/C\$|CAD/i.test(clean)) {
+      currency = 'CAD';
+    } else if (/S\$|SGD/i.test(clean)) {
+      currency = 'SGD';
+    } else if (/Rp|IDR/i.test(clean)) {
+      currency = 'IDR';
+    } else if (/\$/.test(clean)) {
+      currency = 'USD';
+    }
+
+    // 2. Detect Hourly vs Fixed
+    const isHourly = /\b(?:hr|hour|hourly|\/\s*hr)\b/i.test(clean);
+
+    // 3. Match Range (e.g. "$250 - $750", "$20.00 - $40.00", "20.00-40.00", "₹1,500 - 12,500")
+    const rangeMatch = clean.match(/(?:[\$€£₹¥A-Za-z]{1,4}\s*)?([\d,]+(?:\.\d{1,2})?)\s*(?:[\$€£₹¥A-Za-z]{1,4})?\s*(?:[-–—]|\bto\b)\s*(?:[\$€£₹¥A-Za-z]{1,4}\s*)?([\d,]+(?:\.\d{1,2})?)/i);
+    if (rangeMatch) {
+      const min = parseFloat(rangeMatch[1].replace(/,/g, ''));
+      const max = parseFloat(rangeMatch[2].replace(/,/g, ''));
+      if (!isNaN(min) && !isNaN(max) && min > 0) {
+        return { currency, min, max, isHourly, isRange: true };
+      }
+    }
+
+    // 4. Match Single Amount (e.g. "$500", "Est. Budget: $1,200", "Hourly: $25.00")
+    // Target matches with money symbol or explicit budget/hourly keyword
+    const moneyMatch = clean.match(/(?:[\$€£₹¥]\s*|\b(?:budget|rate|hourly|fixed)[:\s]*[\$€£₹¥]?\s*)([\d,]+(?:\.\d{1,2})?)/i)
+      || clean.match(/([\d,]+(?:\.\d{1,2})?)\s*(?:USD|EUR|GBP|INR|AUD|CAD|SGD|MYR|PHP|JPY|IDR)/i);
+
+    if (moneyMatch) {
+      const val = parseFloat(moneyMatch[1].replace(/,/g, ''));
+      if (!isNaN(val) && val > 0) {
+        return { currency, min: val, max: null, isHourly, isRange: false };
+      }
+    }
+
+    // Fallback: any standalone number with currency in text
+    const numMatch = clean.match(/([\d,]+(?:\.\d{1,2})?)/);
+    if (numMatch) {
+      const val = parseFloat(numMatch[1].replace(/,/g, ''));
+      if (!isNaN(val) && val > 0 && (val >= 5 || isHourly)) {
+        return { currency, min: val, max: null, isHourly, isRange: false };
+      }
+    }
+
+    return null;
+  }
+
+  function convertRateToIdr(rateInfo, rates) {
+    if (!rateInfo) return null;
+    const { currency, min, max, isHourly, isRange } = rateInfo;
+
+    if (currency === 'IDR') {
+      const text = isRange && max
+        ? `${formatRupiah(min)} - ${formatRupiah(max)}${isHourly ? ' / jam' : ''}`
+        : `${formatRupiah(min)}${isHourly ? ' / jam' : ''}`;
+      return {
+        text,
+        tooltip: 'Mata uang sudah dalam Rupiah (IDR)'
+      };
+    }
+
+    const rate = (rates && rates[currency]) || (currency === 'USD' ? 16000 : null);
+    if (!rate || rate <= 0) return null;
+
+    const minIdr = Math.round(min * rate);
+    const maxIdr = max ? Math.round(max * rate) : null;
+    const rateFmt = formatRupiah(rate);
+    const tooltip = `Kurs: 1 ${currency} = ${rateFmt} (FreeUp Calc)`;
+
+    const text = isRange && maxIdr
+      ? `≈ ${formatRupiah(minIdr)} - ${formatRupiah(maxIdr)}${isHourly ? ' / jam' : ''}`
+      : `≈ ${formatRupiah(minIdr)}${isHourly ? ' / jam' : ''}`;
+
+    return { text, tooltip };
+  }
+
   global.FreeUpCalc = {
     DEFAULT_CONFIG,
     DEFAULT_GLOBAL_CONFIG,
@@ -251,9 +389,13 @@
     saveGlobalConfig,
     calculate,
     formatCurrency,
+    formatRupiah,
     round2,
     fetchExchangeRate,
     fetchUsdRates,
-    convertToUsd
+    fetchAllIdrRates,
+    convertToUsd,
+    parseRateText,
+    convertRateToIdr
   };
 })(typeof window !== 'undefined' ? window : this);

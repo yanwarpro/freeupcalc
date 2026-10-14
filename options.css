@@ -294,3 +294,136 @@ body {
 .badge-safe    { color: #166534; font-weight: 600; }
 .badge-neutral { color: #713f12; font-weight: 600; }
 .badge-risky   { color: #991b1b; font-weight: 600; }
+
+/* ── Kurs Conversion Section ────────────────────────────────────────── */
+.panel-kurs {
+  border-left: 3px solid #10b981;
+}
+
+.kurs-rates-wrapper {
+  margin-top: 16px;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.kurs-rates-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 14px;
+}
+
+.kurs-rates-title span {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.kurs-rates-title small {
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 600px) {
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kurs-grid .field {
+  min-width: 0;
+}
+
+.input-with-addon {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+}
+
+.input-addon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  background: #e2e8f0;
+  border: 1px solid #d1d5db;
+  border-right: none;
+  border-radius: 8px 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.input-with-addon input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  border-radius: 0 8px 8px 0 !important;
+}
+
+.kurs-preview-card {
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: white;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+}
+
+.preview-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.preview-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.preview-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.preview-badge-sample {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+  color: #065f46;
+  border: 1px solid #86efac;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.1px;
+}
+
+.preview-target-sample {
+  font-size: 11.5px;
+  color: #64748b;
+  font-weight: 500;
+  padding-left: 2px;
+}
+

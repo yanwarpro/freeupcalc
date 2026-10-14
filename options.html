@@ -105,6 +105,137 @@
       </div>
     </section>
 
+    <section class="panel panel-kurs" id="kursConversionSection">
+      <h2>💱 Kurs Conversion</h2>
+      <p class="panel-desc">Konversi otomatis nilai rate dan budget proyek di list Upwork dan Freelancer.com ke dalam Rupiah (IDR). Badge estimasi nilai Rupiah akan ditampilkan tepat di atas rate tiap projek.</p>
+      
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <span class="toggle-label">Aktifkan Kurs Conversion</span>
+          <span class="toggle-desc">Tampilkan badge estimasi Rupiah (IDR) di atas rate list projek</span>
+        </div>
+        <label class="toggle-switch" for="kursConversionEnabled">
+          <input type="checkbox" id="kursConversionEnabled" checked />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="grid-2" style="margin-top: 14px; margin-bottom: 16px;">
+        <div class="field">
+          <label for="kursTargetCurrency">Mata Uang Tujuan</label>
+          <input type="text" id="kursTargetCurrency" value="IDR" readonly style="font-weight: 600; background: #e2e8f0; color: #1e293b; cursor: default;" />
+          <small>Default tujuan konversi dari kurs lain: <b>IDR (Rupiah)</b></small>
+        </div>
+
+        <div class="field">
+          <label>Sinkronisasi Kurs Otomatis</label>
+          <button id="updateAllKursBtn" class="btn btn-primary" type="button" style="height: 38px;">
+            🔄 Update Semua Kurs Pasar
+          </button>
+          <small>Ambil kurs live BI / pasar terkini untuk USD, EUR, GBP, AUD, dll.</small>
+        </div>
+      </div>
+
+      <div class="kurs-rates-wrapper">
+        <div class="kurs-rates-title">
+          <span>Nilai Kurs Mata Uang Asing ke Rupiah (IDR)</span>
+          <small>Atur nilai tukar per 1 unit mata uang ke IDR untuk perhitungan badge list projek:</small>
+        </div>
+
+        <div class="grid-3 kurs-grid">
+          <div class="field">
+            <label for="kursRateUSD">1 USD (US Dollar)</label>
+            <div class="input-with-addon">
+              <span class="input-addon">Rp</span>
+              <input type="number" id="kursRateUSD" min="0" step="1" placeholder="16000" />
+            </div>
+            <small>Upwork &amp; Freelancer USD</small>
+          </div>
+
+          <div class="field">
+            <label for="kursRateEUR">1 EUR (Euro)</label>
+            <div class="input-with-addon">
+              <span class="input-addon">Rp</span>
+              <input type="number" id="kursRateEUR" min="0" step="1" placeholder="17500" />
+            </div>
+            <small>Freelancer EUR (€)</small>
+          </div>
+
+          <div class="field">
+            <label for="kursRateGBP">1 GBP (British Pound)</label>
+            <div class="input-with-addon">
+              <span class="input-addon">Rp</span>
+              <input type="number" id="kursRateGBP" min="0" step="1" placeholder="21000" />
+            </div>
+            <small>Freelancer GBP (£)</small>
+          </div>
+
+          <div class="field">
+            <label for="kursRateAUD">1 AUD (Australian Dollar)</label>
+            <div class="input-with-addon">
+              <span class="input-addon">Rp</span>
+              <input type="number" id="kursRateAUD" min="0" step="1" placeholder="10500" />
+            </div>
+            <small>Freelancer AUD (A$)</small>
+          </div>
+
+          <div class="field">
+            <label for="kursRateCAD">1 CAD (Canadian Dollar)</label>
+            <div class="input-with-addon">
+              <span class="input-addon">Rp</span>
+              <input type="number" id="kursRateCAD" min="0" step="1" placeholder="11800" />
+            </div>
+            <small>Freelancer CAD (C$)</small>
+          </div>
+
+          <div class="field">
+            <label for="kursRateSGD">1 SGD (Singapore Dollar)</label>
+            <div class="input-with-addon">
+              <span class="input-addon">Rp</span>
+              <input type="number" id="kursRateSGD" min="0" step="1" placeholder="12200" />
+            </div>
+            <small>Freelancer SGD (S$)</small>
+          </div>
+
+          <div class="field">
+            <label for="kursRateINR">1 INR (Indian Rupee)</label>
+            <div class="input-with-addon">
+              <span class="input-addon">Rp</span>
+              <input type="number" id="kursRateINR" min="0" step="0.1" placeholder="190" />
+            </div>
+            <small>Freelancer INR (₹)</small>
+          </div>
+        </div>
+
+        <div class="kurs-preview-card">
+          <div class="preview-title">Contoh Tampilan Badge di Atas Rate List Projek:</div>
+          <div class="preview-items">
+            <div class="preview-item">
+              <div class="preview-badge-sample">
+                <span class="sample-flag">🇮🇩</span>
+                <span class="sample-val">≈ Rp 8.000.000</span>
+              </div>
+              <div class="preview-target-sample">$500 Fixed Price</div>
+            </div>
+            <div class="preview-item">
+              <div class="preview-badge-sample">
+                <span class="sample-flag">🇮🇩</span>
+                <span class="sample-val">≈ Rp 320.000 - Rp 640.000 / jam</span>
+              </div>
+              <div class="preview-target-sample">$20.00 - $40.00 / hr</div>
+            </div>
+            <div class="preview-item">
+              <div class="preview-badge-sample">
+                <span class="sample-flag">🇮🇩</span>
+                <span class="sample-val">≈ Rp 4.375.000 - Rp 13.125.000</span>
+              </div>
+              <div class="preview-target-sample">€250 - €750 EUR</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <div class="actions">
       <button id="resetBtn" class="btn btn-secondary">Reset ke Default</button>
       <span id="saveStatus" class="save-status">Tersimpan</span>

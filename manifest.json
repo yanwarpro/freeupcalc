@@ -34,11 +34,22 @@
       "js": ["scam-detector.js"],
       "css": ["content-scam.css"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.upwork.com/*",
+        "https://upwork.com/*",
+        "https://www.freelancer.com/*",
+        "https://freelancer.com/*"
+      ],
+      "js": ["calculator.js", "rate-converter.js"],
+      "css": ["rate-converter.css"],
+      "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["User_Guide_FreeUp_Calc.pdf", "content-scam.css"],
+      "resources": ["User_Guide_FreeUp_Calc.pdf", "content-scam.css", "rate-converter.css"],
       "matches": ["<all_urls>"]
     }
   ],

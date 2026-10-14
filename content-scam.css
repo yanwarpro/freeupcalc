@@ -96,9 +96,13 @@
   margin-top: 10px;
 }
 
-/* Wrapper agar badge tidak geser layout */
+/* Wrapper agar badge tidak geser layout dan rapi berdampingan */
 .freeup-badge-wrap {
-  display: block;
+  display: ruby-text;
+  align-items: center;
   margin-top: 4px;
+  margin-bottom: 4px;
+  margin-right: 8px;
   line-height: 1;
+  vertical-align: middle;
 }

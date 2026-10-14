@@ -20,12 +20,24 @@
     resetBtn: document.getElementById('resetBtn'),
     saveStatus: document.getElementById('saveStatus'),
     scamDetectorEnabled: document.getElementById('scamDetectorEnabled'),
+    // Kurs Conversion elements
+    kursConversionEnabled: document.getElementById('kursConversionEnabled'),
+    kursTargetCurrency: document.getElementById('kursTargetCurrency'),
+    kursRateUSD: document.getElementById('kursRateUSD'),
+    kursRateEUR: document.getElementById('kursRateEUR'),
+    kursRateGBP: document.getElementById('kursRateGBP'),
+    kursRateAUD: document.getElementById('kursRateAUD'),
+    kursRateCAD: document.getElementById('kursRateCAD'),
+    kursRateSGD: document.getElementById('kursRateSGD'),
+    kursRateINR: document.getElementById('kursRateINR'),
+    updateAllKursBtn: document.getElementById('updateAllKursBtn'),
     // Elements for conditional visibility
     serviceFeeRateField: document.getElementById('serviceFeeRate').closest('.field'),
     connectPriceField: document.getElementById('connectPrice').closest('.field')
   };
 
   let globalConfig = null;
+  let globalSaveTimer = null;
 
   const CURRENCY_EXAMPLES = {
     IDR: '16000',
@@ -46,6 +58,7 @@
     await loadPlatformConfig();
     globalConfig = await Calc.loadGlobalConfig();
     populateForm();
+    populateKursConversion();
     renderMethods();
     bindEvents();
     updateRateHint();
@@ -156,8 +169,156 @@
       if (!globalConfig.scamDetector) globalConfig.scamDetector = {};
       globalConfig.scamDetector.enabled = els.scamDetectorEnabled.checked;
       await Calc.saveGlobalConfig(globalConfig);
+      notifyTabs({ action: 'scamDetectorToggle', enabled: els.scamDetectorEnabled.checked });
       showSaveStatus('Scam Detector ' + (els.scamDetectorEnabled.checked ? 'diaktifkan ✓' : 'dinonaktifkan'));
     });
+
+    // ── Kurs Conversion Events ───────────────────────────────────────────────
+    els.kursConversionEnabled.addEventListener('change', async () => {
+      if (!globalConfig.kursConversion) globalConfig.kursConversion = {};
+      globalConfig.kursConversion.enabled = els.kursConversionEnabled.checked;
+      await Calc.saveGlobalConfig(globalConfig);
+      notifyTabs({ action: 'kursConversionToggle', enabled: els.kursConversionEnabled.checked });
+      showSaveStatus('Kurs Conversion ' + (els.kursConversionEnabled.checked ? 'diaktifkan ✓' : 'dinonaktifkan'));
+    });
+
+    const kursFields = [
+      { el: els.kursRateUSD, key: 'USD' },
+      { el: els.kursRateEUR, key: 'EUR' },
+      { el: els.kursRateGBP, key: 'GBP' },
+      { el: els.kursRateAUD, key: 'AUD' },
+      { el: els.kursRateCAD, key: 'CAD' },
+      { el: els.kursRateSGD, key: 'SGD' },
+      { el: els.kursRateINR, key: 'INR' },
+    ];
+
+    kursFields.forEach(({ el, key }) => {
+      const onKursInput = () => {
+        if (!globalConfig.kursConversion) globalConfig.kursConversion = {};
+        if (!globalConfig.kursConversion.rates) globalConfig.kursConversion.rates = {};
+        const val = parseFloat(el.value) || 0;
+        globalConfig.kursConversion.rates[key] = val;
+
+        // Sync USD dengan exchangeRate kalkulator
+        if (key === 'USD' && val > 0) {
+          els.exchangeRate.value = val;
+          config.exchangeRate = val;
+          scheduleSave();
+        }
+        scheduleSaveGlobal();
+      };
+      el.addEventListener('input', onKursInput);
+      el.addEventListener('change', onKursInput);
+    });
+
+    // Sinkronkan exchangeRate kalkulator ke input kursRateUSD jika diubah manual
+    els.exchangeRate.addEventListener('input', () => {
+      const v = parseFloat(els.exchangeRate.value) || 0;
+      if (v > 0) {
+        els.kursRateUSD.value = v;
+        if (!globalConfig.kursConversion) globalConfig.kursConversion = {};
+        if (!globalConfig.kursConversion.rates) globalConfig.kursConversion.rates = {};
+        globalConfig.kursConversion.rates.USD = v;
+        scheduleSaveGlobal();
+      }
+    });
+
+    els.updateAllKursBtn.addEventListener('click', updateAllKursRates);
+  }
+
+  function populateKursConversion() {
+    if (!globalConfig.kursConversion) {
+      globalConfig.kursConversion = {
+        enabled: true,
+        targetCurrency: 'IDR',
+        rates: {
+          USD: 16000,
+          EUR: 17500,
+          GBP: 21000,
+          AUD: 10500,
+          CAD: 11800,
+          SGD: 12200,
+          INR: 190
+        }
+      };
+    }
+    const kc = globalConfig.kursConversion;
+    els.kursConversionEnabled.checked = kc.enabled !== false;
+    els.kursTargetCurrency.value = kc.targetCurrency || 'IDR';
+
+    const rates = kc.rates || {};
+    // Sync USD dari platform config jika ada
+    if (config && config.exchangeRate && !rates.USD) {
+      rates.USD = config.exchangeRate;
+    }
+    els.kursRateUSD.value = rates.USD || 16000;
+    els.kursRateEUR.value = rates.EUR || 17500;
+    els.kursRateGBP.value = rates.GBP || 21000;
+    els.kursRateAUD.value = rates.AUD || 10500;
+    els.kursRateCAD.value = rates.CAD || 11800;
+    els.kursRateSGD.value = rates.SGD || 12200;
+    els.kursRateINR.value = rates.INR || 190;
+  }
+
+  async function updateAllKursRates() {
+    els.updateAllKursBtn.disabled = true;
+    els.updateAllKursBtn.textContent = 'Mengambil Kurs Pasar...';
+    try {
+      const rates = await Calc.fetchAllIdrRates();
+      if (rates) {
+        if (!globalConfig.kursConversion) globalConfig.kursConversion = {};
+        globalConfig.kursConversion.rates = rates;
+
+        els.kursRateUSD.value = rates.USD || '';
+        els.kursRateEUR.value = rates.EUR || '';
+        els.kursRateGBP.value = rates.GBP || '';
+        els.kursRateAUD.value = rates.AUD || '';
+        els.kursRateCAD.value = rates.CAD || '';
+        els.kursRateSGD.value = rates.SGD || '';
+        els.kursRateINR.value = rates.INR || '';
+
+        // Sync USD dengan exchangeRate kalkulator
+        if (rates.USD) {
+          els.exchangeRate.value = rates.USD;
+          config.exchangeRate = rates.USD;
+          scheduleSave();
+        }
+
+        await Calc.saveGlobalConfig(globalConfig);
+        notifyTabs({ action: 'kursRatesUpdated', config: globalConfig.kursConversion });
+        showSaveStatus('Semua kurs IDR berhasil diperbarui!');
+      } else {
+        showSaveStatus('Gagal mengambil kurs pasar.', true);
+      }
+    } catch (e) {
+      console.error('Error fetching all IDR rates:', e);
+      showSaveStatus('Error: Gagal update kurs.', true);
+    } finally {
+      els.updateAllKursBtn.disabled = false;
+      els.updateAllKursBtn.textContent = '🔄 Update Semua Kurs Pasar';
+    }
+  }
+
+  function scheduleSaveGlobal() {
+    clearTimeout(globalSaveTimer);
+    showSaveStatus('Menyimpan kurs...');
+    globalSaveTimer = setTimeout(async () => {
+      await Calc.saveGlobalConfig(globalConfig);
+      notifyTabs({ action: 'kursRatesUpdated', config: globalConfig.kursConversion });
+      showSaveStatus('Kurs tersimpan ✓');
+    }, 400);
+  }
+
+  function notifyTabs(msg) {
+    if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.query) {
+      chrome.tabs.query({}, (tabs) => {
+        tabs.forEach((tab) => {
+          try {
+            chrome.tabs.sendMessage(tab.id, msg).catch(() => {});
+          } catch (e) {}
+        });
+      });
+    }
   }
 
   async function updateExchangeRate() {
@@ -233,10 +394,13 @@
     const platform = els.platformSelect.value;
     config = JSON.parse(JSON.stringify(Calc.DEFAULT_CONFIG[platform])); // Use platform-specific default
     await Calc.saveConfig(config, platform); // Pass platform to saveConfig
+    globalConfig = JSON.parse(JSON.stringify(Calc.DEFAULT_GLOBAL_CONFIG));
+    await Calc.saveGlobalConfig(globalConfig);
     populateForm();
+    populateKursConversion();
     renderMethods();
     updateRateHint();
-    showSaveStatus();
+    showSaveStatus('Pengaturan direset ke default');
   }
 
   init();

@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Test Kurs Conversion - FreeUp Calc</title>
+  <link rel="stylesheet" href="../rate-converter.css" />
+  <link rel="stylesheet" href="../content-scam.css" />
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f1f5f9;
+      color: #1e293b;
+      padding: 24px;
+      margin: 0;
+    }
+    .test-header {
+      max-width: 900px;
+      margin: 0 auto 24px;
+      background: white;
+      padding: 20px 24px;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .controls {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid #d1d5db;
+      background: white;
+    }
+    .btn-primary {
+      background: #10b981;
+      color: white;
+      border-color: #059669;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 12px;
+    }
+    /* Upwork mock tile styles */
+    .job-tile {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .job-tile h3 {
+      margin: 0 0 10px;
+      font-size: 17px;
+      color: #14a800;
+    }
+    .air3-token-container {
+      display: flex;
+      gap: 12px;
+      list-style: none;
+      padding: 0;
+      margin: 10px 0;
+      font-size: 13px;
+      color: #64748b;
+      align-items: flex-start;
+    }
+    .air3-token-container li strong {
+      color: #1e293b;
+    }
+    /* Freelancer mock card styles */
+    .JobSearchCard-item {
+      background: white;
+      border-radius: 10px;
+      padding: 18px 20px;
+      border: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .JobSearchCard-primary {
+      flex: 1;
+    }
+    .JobSearchCard-primary-heading a {
+      color: #007fed;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 16px;
+    }
+    .JobSearchCard-primary-description {
+      font-size: 13px;
+      color: #475569;
+      margin: 8px 0;
+    }
+    .JobSearchCard-primary-price {
+      font-size: 17px;
+      font-weight: 700;
+      color: #007fed;
+      text-align: right;
+      min-width: 140px;
+    }
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-header">
+    <h2>🧪 Test: FreeUp Calc - Kurs Conversion Badge di List Projek</h2>
+    <p>Pengujian badge estimasi Rupiah di atas rate proyek Upwork dan Freelancer.com</p>
+    <div class="controls">
+      <button class="btn btn-primary" id="btnToggle">Toggle On/Off</button>
+      <button class="btn" id="btnUpdateUsd">Ubah Kurs USD = Rp 16.500</button>
+      <button class="btn" id="btnResetKurs">Reset Kurs Default</button>
+      <span id="statusInfo" style="font-size: 12px; color: #059669; font-weight: 600;">Status: Aktif</span>
+    </div>
+  </div>
+
+  <div class="container">
+    <div>
+      <div class="section-title">🟢 List Proyek UPWORK (Mock DOM)</div>
+
+      <!-- Upwork Card 1: Hourly Range -->
+      <article data-test="JobTile" class="job-tile">
+        <h3>Full-Stack Senior Web Developer (React + Node.js)</h3>
+        <span class="freeup-badge-wrap"><span class="freeup-badge freeup-safe">🟢 Aman</span></span>
+        <ul class="air3-token-container">
+          <li data-test="job-type-label">
+            <strong>Hourly: $25.00 - $50.00</strong>
+          </li>
+          <li>Intermediate</li>
+          <li>Est. Time: Less than 1 month, 30+ hrs/week</li>
+        </ul>
+        <p style="font-size: 13px; color: #475569;">Looking for an experienced full-stack developer to build a modern dashboard...</p>
+      </article>
+
+      <br>
+
+      <!-- Upwork Card 2: Fixed Price -->
+      <article data-test="JobTile" class="job-tile">
+        <h3>Design and Build Landing Page in TailwindCSS</h3>
+        <ul class="air3-token-container">
+          <li data-test="is-fixed-price">
+            <strong>Est. Budget: $1,200</strong>
+          </li>
+          <li>Expert</li>
+          <li>Remote</li>
+        </ul>
+        <p style="font-size: 13px; color: #475569;">We need a high converting landing page designed in Figma and coded with responsive HTML/CSS...</p>
+      </article>
+
+      <br>
+
+      <!-- Upwork Card 3: Modern Upwork Section with data-ev-job-uid and title link -->
+      <section class="job-tile air3-card-section" data-ev-job-uid="~01abc999888">
+        <h3 class="job-tile-title">
+          <a data-test="job-tile-title-link" href="/jobs/~01abc999888" style="color: #14a800; text-decoration: none;">
+            AI Agent & Machine Learning Python Pipeline
+          </a>
+        </h3>
+        <span class="freeup-badge-wrap"><span class="freeup-badge freeup-neutral">🟡 Perlu Cek</span></span>
+        <ul class="air3-token-container">
+          <li data-test="job-type-label">Fixed-price</li>
+          <li data-test="is-fixed-price"><strong data-test="budget">Est. Budget: $3,500</strong></li>
+          <li>Expert</li>
+        </ul>
+        <p style="font-size: 13px; color: #475569;">Build an automated LangChain and OpenAI integration script...</p>
+      </section>
+
+      <br>
+
+      <!-- Upwork Card 4: Hourly Single -->
+      <article data-test="JobTile" class="job-tile">
+        <h3>Python Automation & Data Scraping Script</h3>
+        <ul class="air3-token-container">
+          <li data-test="job-type-label">
+            <strong>Hourly: $35.00</strong>
+          </li>
+          <li>Less than 30 hrs/week</li>
+        </ul>
+        <p style="font-size: 13px; color: #475569;">Need a python script to scrape and format catalog data daily...</p>
+      </article>
+    </div>
+
+    <div>
+      <div class="section-title">🔵 List Proyek FREELANCER.COM (Mock DOM)</div>
+
+      <!-- Freelancer Card 1: USD Fixed Range -->
+      <div class="JobSearchCard-item">
+        <div class="JobSearchCard-primary">
+          <div class="JobSearchCard-primary-heading">
+            <a href="#">Build an E-Commerce Website with Payment Gateway</a>
+          </div>
+          <p class="JobSearchCard-primary-description">Need an experienced developer to create an online shop with checkout system...</p>
+        </div>
+        <div class="right-col">
+          <div class="JobSearchCard-primary-price">$250 - $750 USD</div>
+        </div>
+      </div>
+
+      <br>
+
+      <!-- Freelancer Card 2: EUR Fixed Range -->
+      <div class="JobSearchCard-item">
+        <div class="JobSearchCard-primary">
+          <div class="JobSearchCard-primary-heading">
+            <a href="#">Mobile App Development for European Logistics</a>
+          </div>
+          <p class="JobSearchCard-primary-description">Flutter or React Native developer needed for a tracking application...</p>
+        </div>
+        <div class="right-col">
+          <div class="JobSearchCard-primary-price">€250 - €750 EUR</div>
+        </div>
+      </div>
+
+      <br>
+
+      <!-- Freelancer Card 3: GBP Range -->
+      <div class="JobSearchCard-item">
+        <div class="JobSearchCard-primary">
+          <div class="JobSearchCard-primary-heading">
+            <a href="#">SEO Optimization and Content Strategy</a>
+          </div>
+          <p class="JobSearchCard-primary-description">Looking for UK-based or fluent SEO specialist to optimize our WordPress blog...</p>
+        </div>
+        <div class="right-col">
+          <div class="JobSearchCard-primary-price">£20 - £250 GBP</div>
+        </div>
+      </div>
+
+      <br>
+
+      <!-- Freelancer Card 4: AUD Hourly -->
+      <div class="JobSearchCard-item">
+        <div class="JobSearchCard-primary">
+          <div class="JobSearchCard-primary-heading">
+            <a href="#">Graphic Designer for Australian Clothing Brand</a>
+          </div>
+          <p class="JobSearchCard-primary-description">Ongoing hourly design work for social media and marketing banners...</p>
+        </div>
+        <div class="right-col">
+          <div class="JobSearchCard-primary-price">A$15 - A$35 / hr</div>
+        </div>
+      </div>
+
+      <br>
+
+      <!-- Freelancer Card 5: INR Range -->
+      <div class="JobSearchCard-item">
+        <div class="JobSearchCard-primary">
+          <div class="JobSearchCard-primary-heading">
+            <a href="#">Wordpress Bug Fixing & Optimization</a>
+          </div>
+          <p class="JobSearchCard-primary-description">Fix layout issues and speed up page loading...</p>
+        </div>
+        <div class="right-col">
+          <div class="JobSearchCard-primary-price">₹1,500 - ₹12,500 INR</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mock Chrome API -->
+  <script>
+    let mockStorage = {
+      freeupGlobalConfig: {
+        scamDetector: { enabled: true },
+        kursConversion: {
+          enabled: true,
+          targetCurrency: 'IDR',
+          rates: {
+            USD: 16000,
+            EUR: 17500,
+            GBP: 21000,
+            AUD: 10500,
+            CAD: 11800,
+            SGD: 12200,
+            INR: 190
+          }
+        }
+      }
+    };
+
+    const listeners = [];
+
+    window.chrome = {
+      storage: {
+        sync: {
+          get(keys, cb) {
+            cb(mockStorage);
+          },
+          set(obj, cb) {
+            Object.assign(mockStorage, obj);
+            if (cb) cb();
+          }
+        }
+      },
+      runtime: {
+        onMessage: {
+          addListener(fn) {
+            listeners.push(fn);
+          }
+        },
+        sendMessage(msg) {
+          listeners.forEach(fn => fn(msg));
+        }
+      }
+    };
+  </script>
+
+  <!-- Load Calculator and Rate Converter -->
+  <script src="../calculator.js"></script>
+  <script src="../rate-converter.js"></script>
+
+  <script>
+    let isEnabled = true;
+
+    document.getElementById('btnToggle').addEventListener('click', () => {
+      isEnabled = !isEnabled;
+      mockStorage.freeupGlobalConfig.kursConversion.enabled = isEnabled;
+      listeners.forEach(fn => fn({ action: 'kursConversionToggle', enabled: isEnabled }));
+      document.getElementById('statusInfo').textContent = 'Status: ' + (isEnabled ? 'Aktif' : 'Nonaktif');
+      document.getElementById('statusInfo').style.color = isEnabled ? '#059669' : '#dc2626';
+    });
+
+    document.getElementById('btnUpdateUsd').addEventListener('click', () => {
+      mockStorage.freeupGlobalConfig.kursConversion.rates.USD = 16500;
+      listeners.forEach(fn => fn({ action: 'kursRatesUpdated', config: mockStorage.freeupGlobalConfig.kursConversion }));
+      alert('Kurs USD diubah ke 16.500 IDR! Badge otomatis diperbarui.');
+    });
+
+    document.getElementById('btnResetKurs').addEventListener('click', () => {
+      mockStorage.freeupGlobalConfig.kursConversion.rates = {
+        USD: 16000,
+        EUR: 17500,
+        GBP: 21000,
+        AUD: 10500,
+        CAD: 11800,
+        SGD: 12200,
+        INR: 190
+      };
+      listeners.forEach(fn => fn({ action: 'kursRatesUpdated', config: mockStorage.freeupGlobalConfig.kursConversion }));
+      alert('Kurs direset ke default!');
+    });
+  </script>
+</body>
+</html>

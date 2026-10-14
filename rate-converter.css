@@ -1,0 +1,65 @@
+/* ============================================================
+   FreeUp Calc — Rate Kurs Conversion Badge Styles
+   Diinject ke halaman Upwork & Freelancer.com via content script
+   Menampilkan estimasi nilai Rupiah (IDR) di atas rate projek
+   ============================================================ */
+
+.freeup-rate-badge-wrap {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 4px;
+  margin-bottom: 4px;
+  margin-right: 8px;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.freeup-rate-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  letter-spacing: 0.15px;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #86efac;
+  box-shadow: 0 1px 2px rgba(16, 185, 129, 0.08);
+  transition: all 0.18s ease;
+  user-select: none;
+  cursor: help;
+  white-space: nowrap;
+}
+
+.freeup-rate-badge:hover {
+  background: #dcfce7;
+  border-color: #4ade80;
+  color: #047857;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.18);
+}
+
+.freeup-rate-badge-icon {
+  font-size: 12px;
+  line-height: 1;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.freeup-rate-badge-text {
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Penyesuaian container rate di kartu Freelancer (rata kanan di atas harga) */
+.JobSearchCard-primary-price .freeup-rate-badge-wrap,
+[class*="primary-price"] .freeup-rate-badge-wrap,
+.right-col .freeup-rate-badge-wrap {
+  display: flex;
+  margin-bottom: 5px;
+  margin-right: 0;
+  justify-content: flex-end;
+}
