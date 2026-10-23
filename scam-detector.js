@@ -58,6 +58,7 @@
 
   // Key platform untuk lookup kriteria "aman"
   const PLATFORM = isFreelancer ? 'freelancer' : 'upwork';
+  let activeUpworkTooltip = null;
 
   // ─── Selector kartu proyek Freelancer ───────────────────────────────────────
   // Daftar luas untuk menangkap berbagai versi DOM Freelancer.
@@ -226,18 +227,28 @@
     if (isUpwork) {
       const badge = wrap.querySelector('.freeup-badge');
       const tooltip = wrap.querySelector('.freeup-badge-tooltip');
-      let hideTimer;
       const isDetailBadge = () => !!badge.closest('.freeup-detail-badge');
-      const hideTooltip = () => {
-        clearTimeout(hideTimer);
-        hideTimer = setTimeout(() => {
-          if (badge.matches(':hover') || tooltip.matches(':hover')) return;
-          if (tooltip.parentElement === document.body) badge.appendChild(tooltip);
-          tooltip.style.cssText = '';
-        }, 120);
+      const closeTooltip = () => {
+        if (tooltip.parentElement === document.body) badge.appendChild(tooltip);
+        tooltip.style.cssText = 'display:none;';
+        if (activeUpworkTooltip === tooltip) activeUpworkTooltip = null;
+      };
+      tooltip.__freeupCloseTooltip = closeTooltip;
+      const hideTooltip = (event) => {
+        const nextTarget = event && event.relatedTarget;
+        // The tooltip is part of the hover area too, including when portaled
+        // into body for listing cards. Close synchronously only after leaving
+        // both the badge and tooltip.
+        if (nextTarget && nextTarget.nodeType
+          && (badge.contains(nextTarget) || tooltip.contains(nextTarget))) return;
+        closeTooltip();
       };
       const showTooltip = () => {
-        clearTimeout(hideTimer);
+        if (activeUpworkTooltip && activeUpworkTooltip !== tooltip
+          && typeof activeUpworkTooltip.__freeupCloseTooltip === 'function') {
+          activeUpworkTooltip.__freeupCloseTooltip();
+        }
+        activeUpworkTooltip = tooltip;
         const detailBadge = isDetailBadge();
         // Tooltip detail tetap menjadi anak badge fixed. Dengan begitu mouse
         // leave mengikuti hover CSS normal dan tooltip tidak tertinggal di body.
@@ -245,22 +256,21 @@
         if (detailBadge && tooltip.parentElement === document.body) badge.appendChild(tooltip);
         tooltip.style.cssText = 'display:block;position:fixed;left:0;top:0;bottom:auto;z-index:2147483647;min-width:220px;max-width:min(280px, calc(100vw - 16px));max-height:70vh;overflow:auto;pointer-events:auto;';
         if (detailBadge) {
-          tooltip.style.cssText = 'display:block;position:absolute;top:calc(100% + 6px);left:0;right:auto;bottom:auto;z-index:2147483647;min-width:220px;max-width:min(280px, calc(100vw - 24px));max-height:70vh;overflow:auto;pointer-events:auto;';
+          tooltip.style.cssText = 'display:block;position:absolute;top:100%;left:0;right:auto;bottom:auto;z-index:2147483647;min-width:220px;max-width:min(280px, calc(100vw - 24px));max-height:70vh;overflow:auto;pointer-events:auto;';
           return;
         }
         const badgeRect = badge.getBoundingClientRect();
         const tipRect = tooltip.getBoundingClientRect();
         const left = Math.max(8, Math.min(badgeRect.left, window.innerWidth - tipRect.width - 8));
-        const top = badgeRect.top >= tipRect.height + 8
-          ? badgeRect.top - tipRect.height - 8
-          : Math.min(window.innerHeight - tipRect.height - 8, badgeRect.bottom + 8);
+        const top = badgeRect.top >= tipRect.height
+          ? badgeRect.top - tipRect.height
+          : Math.min(window.innerHeight - tipRect.height, badgeRect.bottom);
         tooltip.style.left = `${left}px`;
         tooltip.style.top = `${Math.max(8, top)}px`;
       };
-      badge.addEventListener('mouseenter', showTooltip);
-      badge.addEventListener('mouseleave', hideTooltip);
-      tooltip.addEventListener('mouseenter', () => clearTimeout(hideTimer));
-      tooltip.addEventListener('mouseleave', hideTooltip);
+      badge.addEventListener('pointerenter', showTooltip);
+      badge.addEventListener('pointerleave', hideTooltip);
+      tooltip.addEventListener('pointerleave', hideTooltip);
     }
     return wrap;
   }
@@ -1432,10 +1442,10 @@
       // Label Last viewed kadang berada di subtree client/shadow yang tidak
       // ikut terbaca oleh textContent parser utama. Ambil teks rendered dari
       // viewer aktif dan parse ulang kriteria ini secara terarah.
-      if (Parsers && typeof Parsers.parseLastView === 'function') {
-        const lastViewDays = Parsers.parseLastView(deepTextOf(detailRoot));
-        if (lastViewDays !== null) data.lastViewDays = lastViewDays;
-      }
+      const lastViewDays = getUpworkLastViewDays(detailRoot)
+        ?? getUpworkLastViewDaysFromClientPanels(detailRoot)
+        ?? (detailRoot === document.body ? null : getUpworkLastViewDaysFromClientPanels(document.body));
+      if (lastViewDays !== null) data.lastViewDays = lastViewDays;
 
       const viewerProjectKey = getUpworkProjectKey(location.href);
       const recentClick = recentlyOpenedUpworkCard
@@ -1485,6 +1495,39 @@
     }
   }
 
+  function getUpworkLastViewDays(root) {
+    if (!root) return null;
+    const sources = [deepTextOf(root)];
+    if (typeof root.innerText === 'string') sources.push(root.innerText);
+    // Upwork sometimes exposes this client signal through an accessible label
+    // or title instead of a text node; include those values from the viewer.
+    querySelectorAllDeep('[aria-label], [title]', root).forEach((el) => {
+      sources.push(el.getAttribute('aria-label') || '', el.getAttribute('title') || '');
+    });
+    for (const source of sources) {
+      if (Parsers && typeof Parsers.parseLastView === 'function') {
+        const days = Parsers.parseLastView(source);
+        if (days !== null) return days;
+      } else if (/(?:last\s*(?:viewed|view)(?:\s+by\s+(?:the\s+)?client)?|viewed|seen)\s*[:\-]?\s*yesterday\b/i.test(source)) {
+        return 1;
+      }
+    }
+    return null;
+  }
+
+  function getUpworkLastViewDaysFromClientPanels(root) {
+    if (!root) return null;
+    const panels = querySelectorAllDeep(
+      '[data-test*="client-container" i], [data-test*="client-info" i], [data-test*="client-details" i], [class*="client-info" i], [class*="client-details" i], [class*="client-history" i], [class*="about-client" i]',
+      root
+    ).sort((a, b) => deepTextOf(b).length - deepTextOf(a).length);
+    for (const panel of panels) {
+      const days = getUpworkLastViewDays(panel);
+      if (days !== null) return days;
+    }
+    return null;
+  }
+
   /**
    * Parser cadangan halaman detail Upwork.
    * Dipakai hanya bila scam-parsers.js gagal dimuat.
@@ -1522,9 +1565,7 @@
       isMicrotask: false,
       memberSince: null,
       hireRate: parseHireRate(bodyText),
-      lastViewDays: (Parsers && typeof Parsers.parseLastView === 'function'
-        ? Parsers.parseLastView(deepTextOf(root))
-        : (/(?:last\s*(?:viewed|view)(?:\s+by\s+(?:the\s+)?client)?|viewed|seen)\s*:?\s*yesterday\b/i.test(deepTextOf(root)) ? 1 : null)),
+      lastViewDays: getUpworkLastViewDays(root),
     };
   }
 

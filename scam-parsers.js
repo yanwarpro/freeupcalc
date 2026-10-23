@@ -272,16 +272,20 @@
 
   // ─── Kompetisi: Upwork (tier proposal) & Freelancer (jumlah bid) ──────────────
   const PROPOSAL_TIER_PATTERNS = [
-    // "50+ proposals" → min 50, tanpa batas atas
-    { re: /(\d+)\s*\+\s*proposals?/i, build: m => ({ min: toNumber(m[1]), max: null }) },
+    // "50+ proposals" / "50+ bids" → min 50, tanpa batas atas
+    { re: /(\d+)\s*\+\s*(?:proposals?|bids?)/i, build: m => ({ min: toNumber(m[1]), max: null }) },
+    // Detail view may put the label first: "Proposals: 10 to 20".
+    { re: /(?:proposals?|bids?)\s*:?\s*(\d+)\s*(?:to|-|–|—)\s*(\d+)/i, build: m => ({ min: toNumber(m[1]), max: toNumber(m[2]) }) },
     // "10 to 20 proposals" / "10 - 20 proposals"
-    { re: /(\d+)\s*(?:to|-|–|—)\s*(\d+)\s*proposals?/i, build: m => ({ min: toNumber(m[1]), max: toNumber(m[2]) }) },
-    // "Fewer than 10 proposals" / "Less than 10 proposals"
-    { re: /(?:fewer|less)\s+than\s+(\d+)\s*proposals?/i, build: m => ({ min: 0, max: toNumber(m[1]) }) },
-    // "Under 5 proposals" → min 0, tanpa batas atas
-    { re: /under\s+(\d+)\s*proposals?/i, build: m => ({ min: 0, max: toNumber(m[1]) }) },
+    { re: /(\d+)\s*(?:to|-|–|—)\s*(\d+)\s*(?:proposals?|bids?)/i, build: m => ({ min: toNumber(m[1]), max: toNumber(m[2]) }) },
+    // "Fewer than 10 proposals/bids" / "Less than 10 proposals/bids"
+    { re: /(?:fewer|less)\s+than\s+(\d+)\s*(?:proposals?|bids?)/i, build: m => ({ min: 0, max: toNumber(m[1]) }) },
+    // "Under 5 proposals/bids" → min 0
+    { re: /under\s+(\d+)\s*(?:proposals?|bids?)/i, build: m => ({ min: 0, max: toNumber(m[1]) }) },
+    // Exact count with label first: "Proposals: 12".
+    { re: /(?:proposals?|bids?)\s*:?\s*(\d+)/i, build: m => ({ min: toNumber(m[1]), max: toNumber(m[1]) }) },
     // "Proposals: 12" / "12 proposals" → angka persis
-    { re: /(\d+)\s*proposals?/i, build: m => ({ min: toNumber(m[1]), max: toNumber(m[1]) }) },
+    { re: /(\d+)\s*(?:proposals?|bids?)/i, build: m => ({ min: toNumber(m[1]), max: toNumber(m[1]) }) },
   ];
 
   /**
@@ -329,10 +333,21 @@
    */
   function parseLastView(text) {
     if (!text) return null;
-    const s = String(text);
-    const m = s.match(/(?:last\s*(?:viewed|view)(?:\s+by\s+(?:the\s+)?client)?|viewed|seen)\s*:?\s*(yesterday|just\s*now|\d+\s*(?:seconds?|minutes?|hours?|days?|weeks?|months?|years?)\s+ago)\b/i);
+    const s = String(text).replace(/\u00a0/g, ' ').replace(/\s+/g, ' ');
+    const m = s.match(/(?:last\s*(?:viewed|view)(?:\s+by\s+(?:the\s+)?client)?|viewed|seen)\s*[:\-]?\s*(yesterday|today|just\s*now|(?:a|an|\d+)\s*(?:seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|months?|mos?|years?|yrs?|y)(?:\s+ago)?)\b/i);
     if (m) {
-      const days = engine ? engine.parseRelativeTime(m[1]) : null;
+      const relative = m[1].toLowerCase();
+      if (/\btoday\b|\bjust\s*now\b/.test(relative)) return 0;
+      let normalized = relative.replace(/^an?\s+/, '1 ');
+      normalized = normalized.replace(/\bsecs?\b|\bs\b/g, 'seconds')
+        .replace(/\bmins?\b|\bm\b/g, 'minutes')
+        .replace(/\bhrs?\b|\bh\b/g, 'hours')
+        .replace(/\bd\b/g, 'days')
+        .replace(/\bw\b/g, 'weeks')
+        .replace(/\bmos?\b/g, 'months')
+        .replace(/\byrs?\b|\by\b/g, 'years');
+      if (/^\d+\s+(?:seconds|minutes|hours|days|weeks|months|years)$/.test(normalized)) normalized += ' ago';
+      const days = engine ? engine.parseRelativeTime(normalized) : null;
       if (days !== null) return days;
     }
     return null;
@@ -563,9 +578,11 @@
     // Jumlah proposal persis → prioritaskan label "Proposals 12"
     const proposalEl = query(root, UPWORK_PROPOSAL_SELECTORS);
     const proposalText = proposalEl ? textOf(proposalEl) : text;
-    const exact = parseExactProposalCount(proposalText);
-    let proposalCount = exact ? exact.count : null;
     let proposalTier = parseProposalTier(proposalText);
+    const exact = parseExactProposalCount(proposalText);
+    // A label-first range ("Proposals: 10 to 20") also starts with a number;
+    // do not accidentally collapse that range into an exact count of 10.
+    let proposalCount = exact && (!proposalTier || proposalTier.exact) ? exact.count : null;
     if (proposalCount === null && proposalTier && proposalTier.exact) proposalCount = proposalTier.min;
     if (!proposalTier && proposalCount !== null) {
       proposalTier = { min: proposalCount, max: proposalCount, label: proposalCount + ' proposals', exact: true };

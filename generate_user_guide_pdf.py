@@ -396,22 +396,86 @@ def create_user_guide_pdf(filename):
         "Pada halaman listing proyek, FreeUp Calc memberi badge Aman, Perlu Cek, atau Berisiko. Badge ini adalah indikator awal dari data yang terlihat di halaman, bukan jaminan proyek aman atau bukti bahwa proyek adalah scam. Arahkan kursor ke badge untuk melihat alasan risiko dan checklist kriteria aman.",
         body_style
     ))
-    story.append(Paragraph(
-        "Kriteria Aman harus terpenuhi seluruhnya: Freelancer.com memerlukan Payment verified, Email verified, dan Deposit made (dana di-escrow). Upwork memerlukan Payment verified, hire rate di atas 90%, terakhir dilihat kurang dari 2 hari, dan nomor telepon verified. Data yang tidak terbaca dianggap belum memenuhi kriteria. Jika semua terpenuhi dan tidak ada sinyal scam kritis, badge Aman.",
-        body_style
+    def make_guide_table(headers, rows, widths):
+        data = [[Paragraph(label, tbl_hdr) for label in headers]]
+        for row in rows:
+            data.append([Paragraph(str(value), tbl_cell) for value in row])
+        table = Table(data, colWidths=widths, repeatRows=1, hAlign="LEFT")
+        style = [
+            ('BACKGROUND', (0, 0), (-1, 0), PRIMARY),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('INNERGRID', (0, 0), (-1, -1), 0.35, BORDER_COLOR),
+            ('BOX', (0, 0), (-1, -1), 0.7, PRIMARY),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('LEFTPADDING', (0, 0), (-1, -1), 5),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+        ]
+        for row_index in range(1, len(data)):
+            style.append(('BACKGROUND', (0, row_index), (-1, row_index), LIGHT_BG if row_index % 2 else colors.white))
+        table.setStyle(TableStyle(style))
+        return table
+
+    story.append(Paragraph("Kriteria utama untuk badge Aman", h2_style))
+    story.append(Paragraph("Semua kriteria platform harus terpenuhi. Data yang tidak terbaca membuat kriteria tersebut belum terpenuhi.", body_style))
+    story.append(make_guide_table(
+        ["Platform", "Kriteria Aman (semua wajib terpenuhi)"],
+        [
+            ["Freelancer.com", "Payment verified; Email verified; Deposit made (dana sudah di-escrow)."],
+            ["Upwork", "Payment verified; hire rate &gt;90%; terakhir dilihat &lt;2 hari; nomor telepon verified."],
+        ],
+        [105, 427]
     ))
-    story.append(Paragraph(
-        "Jika semua kriteria Aman belum terpenuhi, badge Berisiko muncul bila ada sinyal kritis atau total skor risiko lebih dari 3. Sinyal kritis meliputi permintaan kontak di luar platform dan tawaran bayaran tinggi untuk pekerjaan yang tampak mudah. Jika tidak ada kondisi tersebut, badge Perlu Cek. Skor adalah penjumlahan poin temuan: misalnya payment belum diverifikasi (+3), deposit belum dibuat (+4), kontak di luar platform (+3), budget sangat kecil (+2), serta sejumlah sinyal lain bernilai +1 hingga +2. Badge juga menampilkan level poin: L1 Rendah (0), L2 Sedang (1–2), L3 Tinggi (3), L4 Sangat tinggi (>3), atau L5 Kritis bila ada sinyal kritis. Kategori badge dan level poin adalah informasi terpisah; hover untuk melihat rinciannya.",
-        body_style
+    story.append(Spacer(1, 5))
+
+    story.append(Paragraph("Sinyal yang menambah skor risiko", h2_style))
+    story.append(make_guide_table(
+        ["Cakupan", "Sinyal terdeteksi", "Poin"],
+        [
+            ["Keduanya", "Payment belum diverifikasi", "+3"],
+            ["Keduanya", "Total spending $0 / spending &lt;$100", "+2 / +1"],
+            ["Keduanya", "Belum ada rating/ulasan", "+1"],
+            ["Keduanya", "Kontak di luar platform (sinyal kritis)", "+3"],
+            ["Keduanya", "Pola deskripsi mencurigakan", "+1"],
+            ["Keduanya", "Tawaran terlalu bagus untuk jadi kenyataan (sinyal kritis)", "+2"],
+            ["Keduanya", "Deskripsi &lt;60 karakter dengan budget &gt;$100", "+1"],
+            ["Keduanya", "Budget positif &lt;$5 (kecuali microtask)", "+2"],
+            ["Keduanya", "Email belum diverifikasi", "+2"],
+            ["Freelancer", "Deposit belum dibuat; identitas belum diverifikasi; akun &lt;6 bulan", "+4; +1; +2"],
+            ["Upwork", "Nomor telepon belum diverifikasi; hire rate &lt;=90%; terakhir dilihat &gt;2 hari", "+2 masing-masing"],
+            ["Upwork", "Rata-rata bid &lt;20% budget (budget minimal $100)", "+1"],
+        ],
+        [74, 365, 93]
     ))
-    story.append(Paragraph(
-        "Pemeriksaan budget saat ini hanya menambah 2 poin bila budget yang terbaca positif dan di bawah $5, kecuali proyek ditandai sebagai microtask. Detector tidak mengukur kompleksitas, jam kerja, atau kewajaran harga berdasarkan ruang lingkup. Karena itu alasan budget adalah sinyal kasar untuk ditinjau, bukan estimasi harga proyek.",
-        body_style
+    story.append(Spacer(1, 5))
+
+    story.append(Paragraph("Skor kompetisi proposal / bid", h2_style))
+    story.append(Paragraph("Jumlah proposal/bid adalah faktor skor tambahan, bukan syarat utama badge Aman. Di Freelancer.com istilahnya bid; lebih dari 20 bid berarti persaingan tinggi dan peluang memenangkan proyek bisa lebih rendah, tetapi ini bukan bukti scam atau kepastian bahwa proyek tidak bisa didapat.", body_style))
+    story.append(make_guide_table(
+        ["Jumlah", "Upwork (proposal)", "Freelancer.com (bid)"],
+        [
+            ["&lt;5", "Sangat aman — 0 poin", "Sangat aman — 0 poin"],
+            ["5–10", "Aman — 0 poin", "Aman — 0 poin"],
+            ["11–20", "Perlu dicek — +1 poin", "Perlu dicek — +1 poin"],
+            ["&gt;20", "Persaingan sangat tinggi — +4 poin", "Persaingan sangat tinggi — +4 poin"],
+        ],
+        [70, 231, 231]
     ))
-    story.append(Paragraph(
-        "Untuk Freelancer, ikon ⛔ menandai proyek yang hanya terbuka untuk freelancer terpilih; pengguna yang tidak dipilih tidak dapat mengajukan penawaran. Peringatan ini adalah syarat kelayakan, bukan skor scam, dan dapat muncul pada badge listing maupun detail proyek.",
-        body_style
+    story.append(Spacer(1, 5))
+
+    story.append(Paragraph("Cara membaca badge dan level skor", h2_style))
+    story.append(make_guide_table(
+        ["Indikator", "Aturan"],
+        [
+            ["Aman", "Semua kriteria utama platform terpenuhi dan tidak ada sinyal kritis."],
+            ["Berisiko", "Ada sinyal kritis, atau skor &gt;3 saat kriteria utama Aman belum lengkap."],
+            ["Perlu Cek", "Kriteria utama belum lengkap, tetapi tidak memenuhi kondisi Berisiko."],
+            ["Level poin", "L1 Rendah (0); L2 Sedang (1–2); L3 Tinggi (3); L4 Sangat tinggi (&gt;3); L5 Kritis (ada sinyal kritis). Level poin dan kategori badge adalah informasi terpisah."],
+        ],
+        [105, 427]
     ))
+    story.append(Spacer(1, 4))
+    story.append(Paragraph("Data yang tidak terbaca tidak menambah poin, tetapi dapat membuat kriteria Aman belum terpenuhi. Pemeriksaan budget hanya memberi +2 untuk budget positif di bawah $5, kecuali microtask; detector tidak mengukur kompleksitas atau kewajaran harga terhadap ruang lingkup. Pada Freelancer, ikon ⛔ menandai proyek yang hanya terbuka untuk freelancer terpilih; ini syarat kelayakan, bukan skor scam.", body_style))
     story.append(Spacer(1, 8))
 
     # Section 5: Halaman Pengaturan (Options Page)

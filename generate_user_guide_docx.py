@@ -269,10 +269,94 @@ def create_user_guide_docx(filepath):
 
     add_h2("D. Badge Scam Detector (Upwork & Freelancer.com)")
     doc.add_paragraph("Pada halaman listing proyek, FreeUp Calc memberi badge Aman, Perlu Cek, atau Berisiko. Badge ini adalah indikator awal dari data yang terlihat di halaman, bukan jaminan proyek aman atau bukti bahwa proyek adalah scam. Arahkan kursor ke badge untuk melihat alasan risiko dan checklist kriteria aman.")
-    doc.add_paragraph("Kriteria Aman harus terpenuhi seluruhnya: Freelancer.com memerlukan Payment verified, Email verified, dan Deposit made (dana di-escrow). Upwork memerlukan Payment verified, hire rate di atas 90%, terakhir dilihat kurang dari 2 hari, dan nomor telepon verified. Data yang tidak terbaca dianggap belum memenuhi kriteria. Jika semua terpenuhi dan tidak ada sinyal scam kritis, badge Aman.")
-    doc.add_paragraph("Jika semua kriteria Aman belum terpenuhi, badge Berisiko muncul bila ada sinyal kritis atau total skor risiko lebih dari 3. Sinyal kritis meliputi permintaan kontak di luar platform dan tawaran bayaran tinggi untuk pekerjaan yang tampak mudah. Jika tidak ada kondisi tersebut, badge Perlu Cek. Skor adalah penjumlahan poin temuan: misalnya payment belum diverifikasi +3, deposit belum dibuat +4, kontak di luar platform +3, budget sangat kecil +2, verifikasi telepon/email atau hire rate rendah +2, dan beberapa sinyal lain bernilai +1 hingga +2. Badge juga menampilkan level poin: L1 Rendah (0), L2 Sedang (1–2), L3 Tinggi (3), L4 Sangat tinggi (>3), atau L5 Kritis bila ada sinyal kritis. Kategori badge dan level poin adalah informasi terpisah; hover untuk melihat rinciannya.")
-    doc.add_paragraph("Untuk Freelancer, ikon ⛔ juga menandai proyek yang hanya terbuka untuk freelancer terpilih; pengguna yang tidak dipilih tidak dapat mengajukan penawaran. Peringatan ini adalah syarat kelayakan, bukan skor scam, dan dapat muncul pada badge listing maupun detail proyek.")
-    doc.add_paragraph("Pemeriksaan budget saat ini hanya menambah 2 poin bila budget yang terbaca positif dan di bawah $5, kecuali proyek ditandai sebagai microtask. Detector tidak mengukur kompleksitas, jam kerja, atau kewajaran harga berdasarkan ruang lingkup. Karena itu alasan budget adalah sinyal kasar untuk ditinjau, bukan estimasi harga proyek.")
+    def add_guide_table(headers, rows, widths):
+        table = doc.add_table(rows=1, cols=len(headers))
+        table.alignment = WD_TABLE_ALIGNMENT.CENTER
+        table.autofit = False
+        try:
+            table.style = "Table Grid"
+        except KeyError:
+            pass
+        for col, label in enumerate(headers):
+            cell = table.rows[0].cells[col]
+            cell.width = widths[col]
+            set_cell_background(cell, "0F4C81")
+            set_cell_margins(cell, 70, 70, 90, 90)
+            run = cell.paragraphs[0].add_run(label)
+            run.font.bold = True
+            run.font.size = Pt(8)
+            run.font.color.rgb = RGBColor(255, 255, 255)
+        for row_index, row_data in enumerate(rows):
+            cells = table.add_row().cells
+            for col, value in enumerate(row_data):
+                cells[col].width = widths[col]
+                set_cell_background(cells[col], "F0F4F8" if row_index % 2 == 0 else "FFFFFF")
+                set_cell_margins(cells[col], 55, 55, 90, 90)
+                paragraph = cells[col].paragraphs[0]
+                paragraph.paragraph_format.space_after = Pt(0)
+                run = paragraph.add_run(value)
+                run.font.size = Pt(8)
+                run.font.color.rgb = COLOR_DARK
+                if col == 0:
+                    run.font.bold = True
+                    run.font.color.rgb = COLOR_PRIMARY
+        doc.add_paragraph().paragraph_format.space_after = Pt(3)
+
+    add_h2("Kriteria utama untuk badge Aman")
+    doc.add_paragraph("Semua kriteria platform harus terpenuhi. Data yang tidak terbaca membuat kriteria tersebut belum terpenuhi.")
+    add_guide_table(
+        ["Platform", "Kriteria Aman (semua wajib terpenuhi)"],
+        [
+            ("Freelancer.com", "Payment verified; Email verified; Deposit made (dana sudah di-escrow)."),
+            ("Upwork", "Payment verified; hire rate >90%; terakhir dilihat <2 hari; nomor telepon verified."),
+        ],
+        [Inches(1.35), Inches(5.55)]
+    )
+
+    add_h2("Sinyal yang menambah skor risiko")
+    add_guide_table(
+        ["Cakupan", "Sinyal terdeteksi", "Poin"],
+        [
+            ("Keduanya", "Payment belum diverifikasi", "+3"),
+            ("Keduanya", "Total spending $0 / spending < $100", "+2 / +1"),
+            ("Keduanya", "Belum ada rating/ulasan", "+1"),
+            ("Keduanya", "Kontak di luar platform (sinyal kritis)", "+3"),
+            ("Keduanya", "Pola deskripsi mencurigakan", "+1"),
+            ("Keduanya", "Tawaran terlalu bagus untuk jadi kenyataan (sinyal kritis)", "+2"),
+            ("Keduanya", "Deskripsi <60 karakter dengan budget >$100", "+1"),
+            ("Keduanya", "Budget positif <$5 (kecuali microtask)", "+2"),
+            ("Keduanya", "Email belum diverifikasi", "+2"),
+            ("Freelancer", "Deposit belum dibuat; identitas belum diverifikasi; akun <6 bulan", "+4; +1; +2"),
+            ("Upwork", "Nomor telepon belum diverifikasi; hire rate <=90%; terakhir dilihat >2 hari", "+2 masing-masing"),
+            ("Upwork", "Rata-rata bid <20% budget (budget minimal $100)", "+1"),
+        ],
+        [Inches(1.0), Inches(4.85), Inches(1.05)]
+    )
+    add_h2("Skor kompetisi proposal / bid")
+    doc.add_paragraph("Jumlah proposal/bid adalah faktor skor tambahan, bukan syarat utama badge Aman. Di Freelancer.com istilahnya bid; lebih dari 20 bid berarti persaingan tinggi dan peluang memenangkan proyek bisa lebih rendah, tetapi ini bukan bukti scam atau kepastian bahwa proyek tidak bisa didapat.")
+    add_guide_table(
+        ["Jumlah", "Upwork (proposal)", "Freelancer.com (bid)"],
+        [
+            ("<5", "Sangat aman — 0 poin", "Sangat aman — 0 poin"),
+            ("5–10", "Aman — 0 poin", "Aman — 0 poin"),
+            ("11–20", "Perlu dicek — +1 poin", "Perlu dicek — +1 poin"),
+            (">20", "Persaingan sangat tinggi — +4 poin", "Persaingan sangat tinggi — +4 poin"),
+        ],
+        [Inches(0.9), Inches(3.0), Inches(3.0)]
+    )
+
+    add_h2("Cara membaca badge dan level skor")
+    add_guide_table(
+        ["Indikator", "Aturan"],
+        [
+            ("Aman", "Semua kriteria utama platform terpenuhi dan tidak ada sinyal kritis."),
+            ("Berisiko", "Ada sinyal kritis, atau skor >3 saat kriteria utama Aman belum lengkap."),
+            ("Perlu Cek", "Kriteria utama belum lengkap, tetapi tidak memenuhi kondisi Berisiko."),
+            ("Level poin", "L1 Rendah (0); L2 Sedang (1–2); L3 Tinggi (3); L4 Sangat tinggi (>3); L5 Kritis (ada sinyal kritis). Level poin dan kategori badge adalah informasi terpisah."),
+        ],
+        [Inches(1.35), Inches(5.55)]
+    )
+    doc.add_paragraph("Data yang tidak terbaca tidak menambah poin, tetapi dapat membuat kriteria Aman belum terpenuhi. Pemeriksaan budget hanya memberi +2 untuk budget positif di bawah $5, kecuali microtask; detector tidak mengukur kompleksitas atau kewajaran harga terhadap ruang lingkup. Pada Freelancer, ikon ⛔ juga menandai proyek yang hanya terbuka untuk freelancer terpilih; ini syarat kelayakan, bukan skor scam.")
 
     # 5. PANDUAN PENGATURAN & KUSTOMISASI
     add_h1("5. HALAMAN PENGATURAN (OPTIONS PAGE)")

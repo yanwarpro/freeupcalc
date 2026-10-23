@@ -40,8 +40,9 @@
     PHONE_UNVERIFIED:   { points: 2, label: 'Nomor telepon belum diverifikasi' },
     LOW_HIRE_RATE:      { points: 2, label: 'Hire rate rendah (<= 90%) — klien jarang memakai freelancer' },
     STALE_LAST_VIEW:    { points: 2, label: 'Proyek terakhir dilihat > 2 hari lalu (kemungkinan sudah terisi)' },
+    MODERATE_PROPOSALS: { points: 1, label: 'Persaingan menengah — perlu dicek' },
+    HIGH_PROPOSALS:     { points: 4, label: 'Persaingan sangat tinggi — peluang mendapat proyek lebih rendah' },
     // Metadata baru dari scam-parsers.js (kompetisi & rata-rata bid)
-    NO_PROPOSALS:       { points: 1, label: 'Belum ada proposal/bid masuk untuk proyek bernilai besar' },
     LOW_AVG_BID:        { points: 1, label: 'Rata-rata bid jauh di bawah budget — indikasi proyek menggoda murah' },
   };
 
@@ -140,6 +141,35 @@
     }
 
     return out;
+  }
+
+  function assessProposalCount(data, platform) {
+    const rawCount = platform === 'freelancer' && typeof data.bidCount === 'number'
+      ? data.bidCount
+      : data.proposalCount;
+    const term = platform === 'freelancer' ? 'bids' : 'proposals';
+    const count = typeof rawCount === 'number' && !isNaN(rawCount)
+      ? rawCount
+      : null;
+    if (count !== null) {
+      if (count < 5) return { known: true, band: 'verySafe', label: count + ' ' + term };
+      if (count >= 5 && count <= 10) return { known: true, band: 'safe', label: count + ' ' + term };
+      if (count > 10 && count <= 20) return { known: true, band: 'check', label: count + ' ' + term };
+      if (count > 20) return { known: true, band: 'risky', label: count + ' ' + term };
+      return { known: true, band: 'low', label: count + ' ' + term };
+    }
+
+    const tier = data.proposalTier;
+    if (!tier || typeof tier.min !== 'number') return { known: false, band: 'unknown', label: '' };
+    const min = tier.min;
+    const max = typeof tier.max === 'number' ? tier.max : null;
+    if (tier.exact) return assessProposalCount({ proposalCount: min }, platform);
+    const label = tier.label ? tier.label.replace(/proposals?/gi, term) : null;
+    if (min === 0 && max !== null && max <= 5) return { known: true, band: 'verySafe', label: label || 'Under 5 ' + term };
+    if (min >= 20 && (max === null || max > 20)) return { known: true, band: 'risky', label: label || min + '+ ' + term };
+    if (min >= 10 && (max === null || max <= 20)) return { known: true, band: 'check', label: label || min + '–' + max + ' ' + term };
+    if (min >= 5 && max !== null && max <= 10) return { known: true, band: 'safe', label: label || min + '–' + max + ' ' + term };
+    return { known: true, band: 'low', label: label || min + (max === null ? '+' : '–' + max) + ' ' + term };
   }
 
   // Cek apakah daftar label risiko mengandung risiko yang ditandai critical
@@ -297,9 +327,20 @@
     // 16. Kompetisi proposal/bid (dari scam-parsers.js)
     // Hanya bermakna bila proyek bernilai besar: proyek murah tanpa proposal
     // memang wajar, proyek mahal tanpa satu pun proposal mencurigakan.
-    if (data.proposalCount === 0 && data.budget && data.budget >= 500) {
-      score += RISK.NO_PROPOSALS.points;
-      risks.push(RISK.NO_PROPOSALS.label);
+    if (platform === 'upwork' || platform === 'freelancer') {
+      const proposals = assessProposalCount(data, platform);
+      const competitionTerm = platform === 'freelancer' ? 'Bid' : 'Proposal';
+      if (proposals.band === 'verySafe') {
+        oks.push(competitionTerm + ' <5 (sangat aman; ' + proposals.label + ') ✓');
+      } else if (proposals.band === 'safe') {
+        oks.push(competitionTerm + ' 5–10 (' + proposals.label + ') ✓');
+      } else if (proposals.band === 'check') {
+        score += RISK.MODERATE_PROPOSALS.points;
+        risks.push(competitionTerm + ' 11–20 — perlu dicek (' + proposals.label + ')');
+      } else if (proposals.band === 'risky') {
+        score += RISK.HIGH_PROPOSALS.points;
+        risks.push(competitionTerm + ' >20 — persaingan sangat tinggi, peluang mendapat proyek lebih rendah (' + proposals.label + ')');
+      }
     }
 
     // 17. Rata-rata bid jauh di bawah budget (indikasi proyek "godaan murah")
@@ -348,6 +389,7 @@
     parseRelativeTime,
     formatLastView,
     evaluateSafeCriteria,
+    assessProposalCount,
     hasCriticalRisk,
     getRiskLevel,
     scoreCard,
