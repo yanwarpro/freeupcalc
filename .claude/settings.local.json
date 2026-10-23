@@ -1,0 +1,9 @@
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://agentrouterTOKEN_BARU_DARI_AGENTROUTER.org",
+    "ANTHROPIC_AUTH_TOKEN": "",
+    "ANTHROPIC_API_KEY": "sk-z9tIn4y7pcaXpi2MaWyul186ORGJN6l6c1Q8vUH0C4onTIH8",
+    "ANTHROPIC_MODEL": "deepseek-v4-flash",
+    "CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY": "1"
+  }
+}

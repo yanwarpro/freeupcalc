@@ -267,6 +267,13 @@ def create_user_guide_docx(filepath):
 
     doc.add_paragraph().paragraph_format.space_after = Pt(6)
 
+    add_h2("D. Badge Scam Detector (Upwork & Freelancer.com)")
+    doc.add_paragraph("Pada halaman listing proyek, FreeUp Calc memberi badge Aman, Perlu Cek, atau Berisiko. Badge ini adalah indikator awal dari data yang terlihat di halaman, bukan jaminan proyek aman atau bukti bahwa proyek adalah scam. Arahkan kursor ke badge untuk melihat alasan risiko dan checklist kriteria aman.")
+    doc.add_paragraph("Kriteria Aman harus terpenuhi seluruhnya: Freelancer.com memerlukan Payment verified, Email verified, dan Deposit made (dana di-escrow). Upwork memerlukan Payment verified, hire rate di atas 90%, terakhir dilihat kurang dari 2 hari, dan nomor telepon verified. Data yang tidak terbaca dianggap belum memenuhi kriteria. Jika semua terpenuhi dan tidak ada sinyal scam kritis, badge Aman.")
+    doc.add_paragraph("Jika semua kriteria Aman belum terpenuhi, badge Berisiko muncul bila ada sinyal kritis atau total skor risiko lebih dari 3. Sinyal kritis meliputi permintaan kontak di luar platform dan tawaran bayaran tinggi untuk pekerjaan yang tampak mudah. Jika tidak ada kondisi tersebut, badge Perlu Cek. Skor adalah penjumlahan poin temuan: misalnya payment belum diverifikasi +3, deposit belum dibuat +4, kontak di luar platform +3, budget sangat kecil +2, verifikasi telepon/email atau hire rate rendah +2, dan beberapa sinyal lain bernilai +1 hingga +2. Badge juga menampilkan level poin: L1 Rendah (0), L2 Sedang (1–2), L3 Tinggi (3), L4 Sangat tinggi (>3), atau L5 Kritis bila ada sinyal kritis. Kategori badge dan level poin adalah informasi terpisah; hover untuk melihat rinciannya.")
+    doc.add_paragraph("Untuk Freelancer, ikon ⛔ juga menandai proyek yang hanya terbuka untuk freelancer terpilih; pengguna yang tidak dipilih tidak dapat mengajukan penawaran. Peringatan ini adalah syarat kelayakan, bukan skor scam, dan dapat muncul pada badge listing maupun detail proyek.")
+    doc.add_paragraph("Pemeriksaan budget saat ini hanya menambah 2 poin bila budget yang terbaca positif dan di bawah $5, kecuali proyek ditandai sebagai microtask. Detector tidak mengukur kompleksitas, jam kerja, atau kewajaran harga berdasarkan ruang lingkup. Karena itu alasan budget adalah sinyal kasar untuk ditinjau, bukan estimasi harga proyek.")
+
     # 5. PANDUAN PENGATURAN & KUSTOMISASI
     add_h1("5. HALAMAN PENGATURAN (OPTIONS PAGE)")
     doc.add_paragraph("Setiap freelancer memiliki preferensi biaya dan metode penarikan yang berbeda. FreeUp Calc menyediakan halaman pengaturan lengkap:")

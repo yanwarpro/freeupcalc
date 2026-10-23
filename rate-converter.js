@@ -511,7 +511,9 @@
 
     if (isFreelancer) {
       const path = location.pathname || '';
-      const isDetailPage = /\/projects?\//i.test(path);
+      // Halaman detail = /projects/<slug>. URL listing "/projects/" (browse)
+      // BUKAN halaman detail — kalau salah deteksi, scanner detail ikut jalan.
+      const isDetailPage = /\/projects?\/[^/?#]+/i.test(path);
 
       if (isDetailPage) {
         processFreelancerDetailPage();

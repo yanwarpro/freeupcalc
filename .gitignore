@@ -1,0 +1,8 @@
+node_modules/
+package-lock.json
+
+# Hasil generate verifikasi visual (dibuat ulang via `npm run test:visual`)
+test/badge-visual-check.html
+
+# Folder bersih untuk load unpacked di Chrome (dibuat ulang dari root)
+extension/

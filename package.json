@@ -1,0 +1,16 @@
+{
+  "name": "freeup-calc",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Chrome extension FreeUp Calc — kalkulator penghasilan bersih, scam detector, dan konverter Rupiah untuk freelancer Indonesia.",
+  "scripts": {
+    "test": "node test/test-scam-score.js && node test/test-scam-parsers.js && node test/test-scam-parsers-dom.js && node test/test-scam-badge-placement.js",
+    "test:scam": "node test/test-scam-score.js",
+    "test:parsers": "node test/test-scam-parsers.js",
+    "test:parsers:dom": "node test/test-scam-parsers-dom.js",
+    "test:badge": "node test/test-scam-badge-placement.js",
+    "test:visual": "node test/build-badge-visual-check.js",
+    "build:ext": "node scripts/build-ext.js"
+  },
+  "license": "MIT"
+}

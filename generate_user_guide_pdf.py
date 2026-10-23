@@ -391,6 +391,29 @@ def create_user_guide_pdf(filename):
     story.append(t_fee_expl)
     story.append(Spacer(1, 8))
 
+    story.append(Paragraph("D. Badge Scam Detector (Upwork & Freelancer.com)", h2_style))
+    story.append(Paragraph(
+        "Pada halaman listing proyek, FreeUp Calc memberi badge Aman, Perlu Cek, atau Berisiko. Badge ini adalah indikator awal dari data yang terlihat di halaman, bukan jaminan proyek aman atau bukti bahwa proyek adalah scam. Arahkan kursor ke badge untuk melihat alasan risiko dan checklist kriteria aman.",
+        body_style
+    ))
+    story.append(Paragraph(
+        "Kriteria Aman harus terpenuhi seluruhnya: Freelancer.com memerlukan Payment verified, Email verified, dan Deposit made (dana di-escrow). Upwork memerlukan Payment verified, hire rate di atas 90%, terakhir dilihat kurang dari 2 hari, dan nomor telepon verified. Data yang tidak terbaca dianggap belum memenuhi kriteria. Jika semua terpenuhi dan tidak ada sinyal scam kritis, badge Aman.",
+        body_style
+    ))
+    story.append(Paragraph(
+        "Jika semua kriteria Aman belum terpenuhi, badge Berisiko muncul bila ada sinyal kritis atau total skor risiko lebih dari 3. Sinyal kritis meliputi permintaan kontak di luar platform dan tawaran bayaran tinggi untuk pekerjaan yang tampak mudah. Jika tidak ada kondisi tersebut, badge Perlu Cek. Skor adalah penjumlahan poin temuan: misalnya payment belum diverifikasi (+3), deposit belum dibuat (+4), kontak di luar platform (+3), budget sangat kecil (+2), serta sejumlah sinyal lain bernilai +1 hingga +2. Badge juga menampilkan level poin: L1 Rendah (0), L2 Sedang (1–2), L3 Tinggi (3), L4 Sangat tinggi (>3), atau L5 Kritis bila ada sinyal kritis. Kategori badge dan level poin adalah informasi terpisah; hover untuk melihat rinciannya.",
+        body_style
+    ))
+    story.append(Paragraph(
+        "Pemeriksaan budget saat ini hanya menambah 2 poin bila budget yang terbaca positif dan di bawah $5, kecuali proyek ditandai sebagai microtask. Detector tidak mengukur kompleksitas, jam kerja, atau kewajaran harga berdasarkan ruang lingkup. Karena itu alasan budget adalah sinyal kasar untuk ditinjau, bukan estimasi harga proyek.",
+        body_style
+    ))
+    story.append(Paragraph(
+        "Untuk Freelancer, ikon ⛔ menandai proyek yang hanya terbuka untuk freelancer terpilih; pengguna yang tidak dipilih tidak dapat mengajukan penawaran. Peringatan ini adalah syarat kelayakan, bukan skor scam, dan dapat muncul pada badge listing maupun detail proyek.",
+        body_style
+    ))
+    story.append(Spacer(1, 8))
+
     # Section 5: Halaman Pengaturan (Options Page)
     story.append(Paragraph("5. Halaman Pengaturan (Options Page)", h1_style))
     story.append(Paragraph(

@@ -31,7 +31,7 @@
         "https://www.freelancer.com/*",
         "https://freelancer.com/*"
       ],
-      "js": ["scam-detector.js"],
+      "js": ["scam-engine.js", "scam-parsers.js", "scam-detector.js"],
       "css": ["content-scam.css"],
       "run_at": "document_idle"
     },
