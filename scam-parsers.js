@@ -324,18 +324,17 @@
   }
 
   /**
-   * Parse waktu terakhir dilihat Upwork ("Viewed 3 hours ago", "Viewed just now").
+   * Parse waktu terakhir dilihat Upwork (termasuk "Last viewed by client: yesterday").
    * Hanya teks eksplisit "viewed"/"seen" agar tidak tertukar dengan "Posted 5 days ago".
    */
   function parseLastView(text) {
     if (!text) return null;
     const s = String(text);
-    const m = s.match(/(?:last\s*viewed|viewed|seen)\s*:?\s*([\w\s]+?\s+ago)/i);
+    const m = s.match(/(?:last\s*(?:viewed|view)(?:\s+by\s+(?:the\s+)?client)?|viewed|seen)\s*:?\s*(yesterday|just\s*now|\d+\s*(?:seconds?|minutes?|hours?|days?|weeks?|months?|years?)\s+ago)\b/i);
     if (m) {
       const days = engine ? engine.parseRelativeTime(m[1]) : null;
       if (days !== null) return days;
     }
-    if (/(?:last\s*viewed|viewed|seen)\s*:?\s*just\s*now/i.test(s)) return 0;
     return null;
   }
 
@@ -442,8 +441,13 @@
   const UPWORK_CLIENT_SELECTORS = [
     '[data-test="client-container"]',
     '[data-test="client-info"]',
+    '[data-test*="client-info" i]',
+    '[data-test*="client-container" i]',
+    '[data-test="client-info-section"]',
     '[class*="client-info" i]',
     '[class*="clientInfo" i]',
+    '[class*="client-details" i]',
+    '[class*="client-history" i]',
     '[class*="about-client" i]',
   ];
   const FREELANCER_TITLE_SELECTORS = [

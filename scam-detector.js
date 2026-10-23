@@ -227,17 +227,27 @@
       const badge = wrap.querySelector('.freeup-badge');
       const tooltip = wrap.querySelector('.freeup-badge-tooltip');
       let hideTimer;
+      const isDetailBadge = () => !!badge.closest('.freeup-detail-badge');
       const hideTooltip = () => {
         clearTimeout(hideTimer);
         hideTimer = setTimeout(() => {
+          if (badge.matches(':hover') || tooltip.matches(':hover')) return;
           if (tooltip.parentElement === document.body) badge.appendChild(tooltip);
           tooltip.style.cssText = '';
         }, 120);
       };
       const showTooltip = () => {
         clearTimeout(hideTimer);
-        if (tooltip.parentElement !== document.body) document.body.appendChild(tooltip);
+        const detailBadge = isDetailBadge();
+        // Tooltip detail tetap menjadi anak badge fixed. Dengan begitu mouse
+        // leave mengikuti hover CSS normal dan tooltip tidak tertinggal di body.
+        if (!detailBadge && tooltip.parentElement !== document.body) document.body.appendChild(tooltip);
+        if (detailBadge && tooltip.parentElement === document.body) badge.appendChild(tooltip);
         tooltip.style.cssText = 'display:block;position:fixed;left:0;top:0;bottom:auto;z-index:2147483647;min-width:220px;max-width:min(280px, calc(100vw - 16px));max-height:70vh;overflow:auto;pointer-events:auto;';
+        if (detailBadge) {
+          tooltip.style.cssText = 'display:block;position:absolute;top:calc(100% + 6px);left:0;right:auto;bottom:auto;z-index:2147483647;min-width:220px;max-width:min(280px, calc(100vw - 24px));max-height:70vh;overflow:auto;pointer-events:auto;';
+          return;
+        }
         const badgeRect = badge.getBoundingClientRect();
         const tipRect = tooltip.getBoundingClientRect();
         const left = Math.max(8, Math.min(badgeRect.left, window.innerWidth - tipRect.width - 8));
@@ -835,12 +845,8 @@
     // Hanya teks yang eksplisit menyebut "viewed"/"seen" agar tidak tertukar
     // dengan "Posted 5 days ago".
     let lastViewDays = null;
-    const lastViewMatch = text.match(/(?:last\s*viewed|viewed|seen)\s*:?\s*([\w\s]+?\s+ago)/i);
+    const lastViewMatch = text.match(/(?:last\s*(?:viewed|view)(?:\s+by\s+client)?|viewed|seen)\s*:?\s*(yesterday|just\s*now|\d+\s*(?:seconds?|minutes?|hours?|days?|weeks?|months?|years?)\s+ago)\b/i);
     if (lastViewMatch) lastViewDays = parseRelativeTime(lastViewMatch[1]);
-    if (lastViewDays === null) {
-      const justNow = text.match(/(?:last\s*viewed|viewed|seen)\s*:?\s*just\s*now/i);
-      if (justNow) lastViewDays = 0;
-    }
 
     // Phone number verified (Upwork)
     let phoneVerified = null;
@@ -1137,7 +1143,136 @@
     return null;
   }
 
+  function getUpworkProjectKey(rootOrUrl) {
+    let value = typeof rootOrUrl === 'string' ? rootOrUrl : '';
+    const isCardElement = !!(rootOrUrl && typeof rootOrUrl !== 'string' && rootOrUrl.getAttribute);
+    if (!value && rootOrUrl && rootOrUrl.getAttribute) {
+      // Job links appear as /jobs/~ID, /jobs/details/~ID, and sometimes as a
+      // viewer query URL. Resolve each candidate instead of assuming one path.
+      const links = querySelectorAllDeep('a[href*="/jobs/"]', rootOrUrl);
+      const link = links.find((item) => getUpworkProjectKey(item.getAttribute('href') || item.href)) || null;
+      value = link ? (link.getAttribute('href') || link.href) : (rootOrUrl.getAttribute('data-job-uid') || '');
+    }
+    // Never substitute the current viewer URL for a card with no readable ID:
+    // that makes every unidentifiable listing card look like the open project.
+    if (!value && isCardElement) return '';
+    if (!value) value = location.href;
+    try {
+      const sourceUrl = new URL(String(value), location.href);
+      const viewerState = sourceUrl.searchParams.get('job-details-viewer');
+      if (viewerState) {
+        const viewer = JSON.parse(viewerState.replace(/\\~/g, '~'));
+        const id = String(viewer.ciphertext || '').match(/~?([a-z0-9_-]+)/i);
+        if (id) return id[1].split('_')[0].toLowerCase();
+      }
+      const path = sourceUrl.pathname;
+      const explicitJobPath = path.match(/\/jobs\/(?:details\/|apply\/|)~([a-z0-9_-]+)/i)
+        || path.match(/\/jobs\/(?:details|apply)\/([a-z0-9_-]{10,})/i)
+        || path.match(/\/jobs\/([0-9]{10,})(?:[_/?#-]|$)/i);
+      if (explicitJobPath) return explicitJobPath[1].split('_')[0].toLowerCase();
+    } catch (e) { /* bukan URL viewer Upwork */ }
+    // data-job-uid can itself be a raw Upwork ID (sometimes prefixed with ~).
+    const rawId = String(value).match(/^~?([a-z0-9_-]+)$/i);
+    if (rawId) return rawId[1].split('_')[0].toLowerCase();
+    return '';
+  }
+
+  function upworkTitleCacheKey(title) {
+    const normalized = String(title || '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+    return normalized ? `freeup-upwork-detail-title:${normalized}` : '';
+  }
+
+  function readCachedUpworkDetailData(projectKey, title) {
+    try {
+      const titleKey = upworkTitleCacheKey(title);
+      const raw = (projectKey && sessionStorage.getItem(`freeup-upwork-detail:${projectKey}`))
+        || (titleKey && sessionStorage.getItem(titleKey));
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (data.memberSince) data.memberSince = new Date(data.memberSince);
+      return data;
+    } catch (e) { return null; }
+  }
+
+  function cacheUpworkDetailData(projectKey, data) {
+    if (!data) return;
+    try {
+      const serialized = JSON.stringify(data);
+      if (projectKey) sessionStorage.setItem(`freeup-upwork-detail:${projectKey}`, serialized);
+      const titleKey = upworkTitleCacheKey(data.title);
+      if (titleKey) sessionStorage.setItem(titleKey, serialized);
+    }
+    catch (e) { /* session storage mungkin dinonaktifkan */ }
+  }
+
+  let recentlyOpenedUpworkCard = null;
+
+  function rememberClickedUpworkCard(event) {
+    const path = typeof event.composedPath === 'function' ? event.composedPath() : [event.target];
+    const card = path.find((node) => node && node.nodeType === Node.ELEMENT_NODE
+      && node.matches && node.matches('[data-test="job-tile"], .job-tile, [class*="JobTile"], article[data-job-uid], section[data-ev-job-uid]'));
+    if (!card) return;
+    const link = path.find((node) => node && node.nodeType === Node.ELEMENT_NODE
+      && node.matches && node.matches('a[href*="/jobs/"]'));
+    const projectKey = (link && getUpworkProjectKey(link.getAttribute('href') || link.href))
+      || getUpworkProjectKey(card);
+    recentlyOpenedUpworkCard = { card, projectKey, openedAt: Date.now() };
+  }
+
+  function mergeUpworkDetailData(target, detailData) {
+    if (!target || !detailData) return false;
+    let changed = false;
+    ['paymentVerified', 'phoneVerified', 'hireRate', 'lastViewDays', 'totalSpent', 'rating', 'reviewCount', 'budget', 'description', 'memberSince', 'proposalCount', 'proposalTier'].forEach((key) => {
+      const value = detailData[key];
+      if (value === null || value === undefined || value === '') return;
+      if (target[key] !== value) {
+        target[key] = value;
+        changed = true;
+      }
+    });
+    return changed;
+  }
+
+  function applyCachedUpworkDetailDataToCard(card) {
+    const data = card && card.__freeupScamData;
+    if (!data) return;
+    const detailData = readCachedUpworkDetailData(getUpworkProjectKey(card), data.title);
+    if (!mergeUpworkDetailData(data, detailData)) return;
+    const oldWrap = card.querySelector('.freeup-badge-wrap');
+    if (oldWrap) oldWrap.replaceWith(makeBadge(scoreCard(data, PLATFORM), {}));
+  }
+
+  function refreshUpworkListingCardFromDetail(card, detailData) {
+    if (!card || !detailData) return;
+    try {
+      // Reparse the live card instead of relying on __freeupScamData. Upwork
+      // can replace card nodes while keeping the old detector marker/badge,
+      // leaving that in-memory object absent or stale.
+      const data = parseUpworkCard(card) || card.__freeupScamData;
+      if (!data) return;
+      card.__freeupScamData = data;
+      mergeUpworkDetailData(data, detailData);
+
+      const oldWrap = card.querySelector('.freeup-badge-wrap');
+      const newBadge = makeBadge(scoreCard(data, PLATFORM), {});
+      if (oldWrap) {
+        oldWrap.replaceWith(newBadge);
+        card.setAttribute(PROCESSED_ATTR, '1');
+      } else {
+        // Let the usual insertion logic choose the title anchor.
+        card.removeAttribute(PROCESSED_ATTR);
+        processCard(card, parseUpworkCard);
+      }
+    } catch (e) {
+      console.warn('[FreeUp Scam Detector] Gagal memperbarui badge listing dari detail Upwork:', e);
+    }
+  }
+
   function processCard(card, parser) {
+    if (isUpwork && card.querySelector('.freeup-badge-wrap')) {
+      applyCachedUpworkDetailDataToCard(card);
+      if (card.hasAttribute(PROCESSED_ATTR)) return;
+    }
     if (card.hasAttribute(PROCESSED_ATTR) && card.querySelector('.freeup-badge-wrap')) return;
     // Freelancer dapat merender ulang isi kartu tanpa mengganti node kartu.
     // Jika badge hilang tetapi marker tertinggal, izinkan pemasangan ulang.
@@ -1151,7 +1286,8 @@
 
     try {
       const data = parser(card);
-      if (isFreelancer) card.__freeupScamData = data;
+      if (isFreelancer || isUpwork) card.__freeupScamData = data;
+      if (isUpwork) mergeUpworkDetailData(data, readCachedUpworkDetailData(getUpworkProjectKey(card), data.title));
       const result = scoreCard(data, PLATFORM);
       const requirement = detectFreelancerRequirement(data, card);
       const badge = makeBadge(result, { requirement });
@@ -1182,6 +1318,21 @@
   // URL listing: /ab/jobs/search/... , /freelance-jobs/...
   // URL detail : /jobs/apply/<id>_<slug>/ , /jobs/~<id>
   function isUpworkDetailPage() {
+    // Upwork juga menampilkan detail sebagai viewer tertanam di halaman
+    // pencarian. Pada URL ini path tetap /nx/s/find-work/ dan ID proyek ada
+    // di JSON query parameter `job-details-viewer`.
+    try {
+      const viewerState = new URL(location.href).searchParams.get('job-details-viewer');
+      if (viewerState) {
+        const viewer = JSON.parse(viewerState.replace(/\\~/g, '~'));
+        if (viewer && viewer.ciphertext) {
+          // URL pencarian tetap menyimpan parameter viewer setelah dialog
+          // ditutup. Anggap detail aktif hanya jika shell viewer masih terlihat.
+          return !!findVisibleUpworkDetailRoot();
+        }
+      }
+    } catch (e) { /* abaikan query viewer yang tidak valid */ }
+
     // 1. Penanda DOM khas halaman detail
     const strongMarkers = [
       '[data-test="client-container"]',
@@ -1203,9 +1354,69 @@
     return /\/jobs?\/apply\/|\/jobs?\/~[a-z0-9]/i.test(getPath());
   }
 
+  function findVisibleUpworkDetailRoot() {
+    const selectors = [
+      '[data-test="job-details-viewer"]',
+      '[data-test*="job-details-viewer" i]',
+      '[data-test="job-details"]',
+      '[role="dialog"]',
+      '[class*="job-details-viewer" i]',
+      '[class*="JobDetailsViewer" i]',
+      '[class*="JobDetails" i]',
+    ];
+    const candidates = [];
+    for (const selector of selectors) candidates.push(...querySelectorAllDeep(selector));
+    return Array.from(new Set(candidates))
+      .filter((el) => {
+        if (!el.isConnected || el.getAttribute('aria-hidden') === 'true') return false;
+        const style = getComputedStyle(el);
+        if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) return false;
+        const rect = el.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      })
+      .sort((a, b) => deepTextOf(b).length - deepTextOf(a).length)[0] || null;
+  }
+
+  function findUpworkDetailRoot() {
+    const visibleRoot = findVisibleUpworkDetailRoot();
+    if (visibleRoot) return visibleRoot;
+    const selectors = [
+      '[data-test="job-details-viewer"]',
+      '[data-test*="job-details-viewer" i]',
+      '[data-test="job-details"]',
+      '[role="dialog"]',
+      '[class*="job-details-viewer" i]',
+      '[class*="JobDetailsViewer" i]',
+      '[class*="JobDetails" i]',
+    ];
+    for (const selector of selectors) {
+      const matches = querySelectorAllDeep(selector);
+      if (!matches.length) continue;
+      // Viewer shell biasanya punya teks job + client. Pilih shell terlengkap
+      // di antara kecocokan selector spesifik yang sama.
+      return matches.sort((a, b) => deepTextOf(b).length - deepTextOf(a).length)[0];
+    }
+    return document.body;
+  }
+
   // ─── Upwork Detail Page Scanner ───────────────────────────────────────────────
   function scanUpworkDetailPage() {
-    if (document.body.hasAttribute('data-freeup-upwork-detail-scanned')) return;
+    const embeddedViewer = (() => {
+      try { return !!new URL(location.href).searchParams.get('job-details-viewer'); }
+      catch (e) { return false; }
+    })();
+    const detailRoot = embeddedViewer ? findVisibleUpworkDetailRoot() : findUpworkDetailRoot();
+    // Viewer bisa belum terpasang atau sudah ditutup sementara URL SPA belum
+    // berubah. Jangan membuat badge detail dari isi halaman listing.
+    if (!detailRoot) return;
+
+    if (document.body.hasAttribute('data-freeup-upwork-detail-scanned')) {
+      const oldBadge = document.querySelector('.freeup-badge.freeup-badge-lg');
+      const oldWrap = oldBadge && oldBadge.closest('.freeup-badge-wrap');
+      if (oldWrap) oldWrap.remove();
+      else if (oldBadge) oldBadge.remove();
+    }
+    document.body.removeAttribute('data-freeup-upwork-detail-scanned');
     document.body.setAttribute('data-freeup-upwork-detail-scanned', '1');
 
     try {
@@ -1213,23 +1424,62 @@
       // proposal tersedia PERSIS, bukan hanya tier.
       let data = null;
       if (Parsers) {
-        const parsed = Parsers.parseUpworkDetail(document.body, window);
+        const parsed = Parsers.parseUpworkDetail(detailRoot, window);
         if (parsed) data = parsed;
       }
-      if (!data) data = parseUpworkDetailFallback();
+      if (!data) data = parseUpworkDetailFallback(detailRoot);
+
+      // Label Last viewed kadang berada di subtree client/shadow yang tidak
+      // ikut terbaca oleh textContent parser utama. Ambil teks rendered dari
+      // viewer aktif dan parse ulang kriteria ini secara terarah.
+      if (Parsers && typeof Parsers.parseLastView === 'function') {
+        const lastViewDays = Parsers.parseLastView(deepTextOf(detailRoot));
+        if (lastViewDays !== null) data.lastViewDays = lastViewDays;
+      }
+
+      const viewerProjectKey = getUpworkProjectKey(location.href);
+      const recentClick = recentlyOpenedUpworkCard
+        && Date.now() - recentlyOpenedUpworkCard.openedAt < 60000
+        && recentlyOpenedUpworkCard.card.isConnected
+        ? recentlyOpenedUpworkCard
+        : null;
+      const projectKey = viewerProjectKey || (recentClick && recentClick.projectKey) || '';
+      const cardProjectKey = recentClick
+        ? (recentClick.projectKey || getUpworkProjectKey(recentClick.card))
+        : '';
+      // Store the same details under both the viewer ID and the listing card
+      // ID, since Upwork can encode these IDs through different URL shapes.
+      [projectKey, cardProjectKey].filter(Boolean).forEach((key) => cacheUpworkDetailData(key, data));
+
+      // Upwork's embedded details viewer only slides over the existing search
+      // page. The listing branch of scanAll() therefore may never run when the
+      // viewer closes. Refresh the matching underlying card now, while the
+      // listing DOM is still present, and keep the same detail cache for reloads.
+      if (projectKey || recentClick) {
+        const listingCards = querySelectorAllDeep(
+          '[data-test="job-tile"], .job-tile, [class*="JobTile"], article[data-job-uid], section[data-ev-job-uid]'
+        );
+        const matchingCards = new Set();
+        if (recentClick) {
+          // A user-initiated viewer belongs to the exact card they opened.
+          // Do not fan out to other cards that happen to expose a reused ID.
+          matchingCards.add(recentClick.card);
+        } else {
+          listingCards.forEach((card) => {
+            if (getUpworkProjectKey(card) === projectKey) matchingCards.add(card);
+          });
+        }
+        matchingCards.forEach((card) => refreshUpworkListingCardFromDetail(card, data));
+      }
 
       const result = scoreCard(data, PLATFORM);
       const badge = makeBadge(result, { large: true });
-
-      // Inject badge di dekat judul proyek
-      const titleEl = document.querySelector(
-        'h1, [data-test="job-title"], [class*="job-title" i], [class*="JobTitle" i]'
-      );
-      if (titleEl) {
-        titleEl.insertAdjacentElement('afterend', badge);
-      } else {
-        document.body.insertBefore(badge, document.body.firstChild);
-      }
+      // Letakkan di layer dokumen paling atas agar tidak terpotong atau berada
+      // di bawah stacking context overlay detail Upwork.
+      badge.classList.add('freeup-detail-badge');
+      badge.classList.add('freeup-upwork-detail-badge');
+      badge.style.cssText = 'position:fixed;top:12px;left:12px;right:auto;bottom:auto;z-index:2147483647;display:block;width:max-content;max-width:calc(100vw - 24px);margin:0;pointer-events:auto;';
+      document.documentElement.appendChild(badge);
     } catch (e) {
       // Silent fail
     }
@@ -1239,9 +1489,9 @@
    * Parser cadangan halaman detail Upwork.
    * Dipakai hanya bila scam-parsers.js gagal dimuat.
    */
-  function parseUpworkDetailFallback() {
-    const bodyText = textOf(document.body);
-    const verifications = extractVerifications(document.body);
+  function parseUpworkDetailFallback(root = document.body) {
+    const bodyText = textOf(root);
+    const verifications = extractVerifications(root);
 
     let rating = null, reviewCount = 0;
     const ratingMatch = bodyText.match(/([\d.]+)\s*\/?\s*5(?!\d)/);
@@ -1255,7 +1505,7 @@
     if (budgetMatch) budget = parseFloat(budgetMatch[1].replace(/,/g, ''));
 
     let description = bodyText;
-    const descEl = document.querySelector('[data-test="job-description"], [class*="job-description" i], [class*="description" i]');
+    const descEl = root.querySelector('[data-test="job-description"], [class*="job-description" i], [class*="description" i]');
     if (descEl) description = textOf(descEl) || bodyText;
 
     return {
@@ -1272,7 +1522,9 @@
       isMicrotask: false,
       memberSince: null,
       hireRate: parseHireRate(bodyText),
-      lastViewDays: null,
+      lastViewDays: (Parsers && typeof Parsers.parseLastView === 'function'
+        ? Parsers.parseLastView(deepTextOf(root))
+        : (/(?:last\s*(?:viewed|view)(?:\s+by\s+(?:the\s+)?client)?|viewed|seen)\s*:?\s*yesterday\b/i.test(deepTextOf(root)) ? 1 : null)),
     };
   }
 
@@ -1281,6 +1533,8 @@
       if (isUpworkDetailPage()) {
         scanUpworkDetailPage();
       } else {
+        document.querySelectorAll('.freeup-upwork-detail-badge').forEach((el) => el.remove());
+        document.body.removeAttribute('data-freeup-upwork-detail-scanned');
         const cards = document.querySelectorAll(
           '[data-test="job-tile"], .job-tile, [class*="JobTile"], article[data-job-uid], section[data-ev-job-uid]'
         );
@@ -1728,6 +1982,23 @@
   });
 
   observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+
+  // Beberapa versi Upwork menyembunyikan viewer (tanpa menghapus node) saat
+  // pengguna mengklik area luar. MutationObserver di atas tidak melihat
+  // perubahan class/style, jadi ricontrolla route dan listing sesudah klik luar.
+  if (isUpwork) {
+    document.addEventListener('click', rememberClickedUpworkCard, true);
+    document.addEventListener('click', (event) => {
+      const detailBadge = document.querySelector('.freeup-upwork-detail-badge');
+      if (!detailBadge) return;
+      const viewerRoot = findVisibleUpworkDetailRoot();
+      if (viewerRoot && viewerRoot.contains(event.target)) return;
+      // Viewer can finish its close transition after the click handler. Rescan
+      // after the transition as well as immediately so listing cards consume
+      // the detail cache even when Upwork only hides the viewer with CSS.
+      [80, 350, 750].forEach((delay) => setTimeout(scanAll, delay));
+    }, true);
+  }
 
   // Freelancer mengganti route lewat History API tanpa reload. Badge detail
   // berada di documentElement (di luar body), jadi bersihkan segera saat URL

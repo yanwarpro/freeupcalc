@@ -71,14 +71,14 @@
   left: 0;
   min-width: 220px;
   max-width: 280px;
-  background: #1e293b;
+  background: rgba(30, 41, 59, 0.94);
   color: #f1f5f9;
   font-size: 11px;
   font-weight: 400;
   line-height: 1.5;
   padding: 8px 10px;
   border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.16);
   z-index: 9999;
   pointer-events: none;
   white-space: normal;
