@@ -47,6 +47,8 @@
   };
 
   async function init() {
+    const isExtension = typeof chrome !== 'undefined' && !!chrome.tabs;
+    if (!isExtension) els.detectBtn.hidden = true;
     // 1. Auto-detect platform dari URL tab aktif sebelum load config
     const detectedPlatform = await detectPlatformFromTab();
     if (detectedPlatform) {
@@ -137,10 +139,17 @@
     els.withdrawalMethod.addEventListener('change', onMethodChange);
     els.detectBtn.addEventListener('click', detectFromPage);
     els.optionsBtn.addEventListener('click', () => {
-      chrome.runtime.openOptionsPage();
+      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.openOptionsPage) {
+        chrome.runtime.openOptionsPage();
+      } else {
+        window.location.href = 'options.html';
+      }
     });
     els.userGuideBtn.addEventListener('click', () => {
-      chrome.tabs.create({ url: chrome.runtime.getURL('User_Guide_FreeUp_Calc.pdf') });
+      const guideUrl = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL
+        ? chrome.runtime.getURL('User_Guide_FreeUp_Calc.pdf')
+        : 'User_Guide_FreeUp_Calc.pdf';
+      window.open(guideUrl, '_blank', 'noopener');
     });
   }
 
@@ -278,6 +287,10 @@
   }
 
   async function detectFromPage() {
+    if (typeof chrome === 'undefined' || !chrome.tabs || !chrome.tabs.query) {
+      alert('Deteksi otomatis hanya tersedia saat FreeUp Calc dipasang sebagai ekstensi Chrome. Anda tetap bisa mengisi kalkulator secara manual di halaman ini.');
+      return;
+    }
     els.detectBtn.style.opacity = '0.5';
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });

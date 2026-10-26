@@ -1328,6 +1328,11 @@
   // URL listing: /ab/jobs/search/... , /freelance-jobs/...
   // URL detail : /jobs/apply/<id>_<slug>/ , /jobs/~<id>
   function isUpworkDetailPage() {
+    // Rute detail Upwork baru dapat berupa halaman /nx terpisah alih-alih
+    // viewer dengan query job-details-viewer. Jangan biarkan kartu listing
+    // yang masih tertinggal di DOM membuat halaman detail dianggap listing.
+    if (/\/jobs\/details\/~?[a-z0-9_-]+(?:\/|$)/i.test(getPath())) return true;
+
     // Upwork juga menampilkan detail sebagai viewer tertanam di halaman
     // pencarian. Pada URL ini path tetap /nx/s/find-work/ dan ID proyek ada
     // di JSON query parameter `job-details-viewer`.

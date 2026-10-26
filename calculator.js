@@ -63,6 +63,14 @@
   };
 
   async function loadGlobalConfig() {
+    if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.sync) {
+      try {
+        const saved = JSON.parse(localStorage.getItem('freeupGlobalConfig') || '{}');
+        return deepMerge(DEFAULT_GLOBAL_CONFIG, saved);
+      } catch (_) {
+        return deepMerge(DEFAULT_GLOBAL_CONFIG, {});
+      }
+    }
     return new Promise((resolve) => {
       chrome.storage.sync.get('freeupGlobalConfig', (result) => {
         const saved = result.freeupGlobalConfig || {};
@@ -72,12 +80,24 @@
   }
 
   async function saveGlobalConfig(cfg) {
+    if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.sync) {
+      localStorage.setItem('freeupGlobalConfig', JSON.stringify(cfg));
+      return;
+    }
     return new Promise((resolve) => {
       chrome.storage.sync.set({ freeupGlobalConfig: cfg }, resolve);
     });
   }
 
   function loadConfig(platform = 'upwork') { // Add platform parameter
+    if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.sync) {
+      try {
+        const saved = JSON.parse(localStorage.getItem('freeupCalcConfig') || '{}');
+        return Promise.resolve(deepMerge(DEFAULT_CONFIG[platform], saved[platform] || {}));
+      } catch (_) {
+        return Promise.resolve(deepMerge(DEFAULT_CONFIG[platform], {}));
+      }
+    }
     return new Promise((resolve) => {
       chrome.storage.sync.get('freeupCalcConfig', (data) => {
         const saved = data.freeupCalcConfig || {};
@@ -88,6 +108,13 @@
   }
 
   function saveConfig(config, platform = 'upwork') { // Add platform parameter
+    if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.sync) {
+      let saved = {};
+      try { saved = JSON.parse(localStorage.getItem('freeupCalcConfig') || '{}'); } catch (_) { /* reset malformed local data */ }
+      saved[platform] = config;
+      localStorage.setItem('freeupCalcConfig', JSON.stringify(saved));
+      return Promise.resolve();
+    }
     return new Promise((resolve) => {
       chrome.storage.sync.set({ freeupCalcConfig: { [platform]: config } }, () => resolve());
     });
